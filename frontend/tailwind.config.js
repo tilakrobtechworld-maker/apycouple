@@ -36,6 +36,7 @@ export default {
       animation: {
         'float': 'float 6s ease-in-out infinite',
         'fade-in': 'fadeIn 0.5s ease-in-out',
+        'marquee-ltr': 'marqueeLtr 35s linear infinite',
       },
       keyframes: {
         float: {
@@ -45,6 +46,13 @@ export default {
         fadeIn: {
           '0%': { opacity: '0', transform: 'translateY(10px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        // Content is duplicated so one full set is exactly 50% of the track
+        // width - animating from -50% to 0 moves it right ("left to right")
+        // and loops seamlessly back to an identical-looking start.
+        marqueeLtr: {
+          '0%': { transform: 'translateX(-50%)' },
+          '100%': { transform: 'translateX(0%)' },
         },
       },
     },

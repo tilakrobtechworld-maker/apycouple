@@ -339,23 +339,26 @@ export default function CoupleWebsite() {
 
       {/* Gallery */}
       {gallery?.length > 0 && (
-        <section id="gallery" className="py-20 bg-gray-50">
+        <section id="gallery" className="py-20 bg-gray-50 overflow-hidden">
           <div className="max-w-5xl mx-auto px-4">
             <h2 className="text-4xl font-serif font-bold text-center mb-2" style={{ color: colors.text, fontFamily: fonts.heading }}>Photo Gallery</h2>
             <div className="w-16 h-0.5 mx-auto mb-12" style={{ background: colors.primary }} />
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {gallery.map((p, i) => (
-                <motion.button
-                  key={p.id}
+          </div>
+
+          {/* Auto-scrolling marquee: the photo list is rendered twice back to
+              back and animated exactly one set-width to the right on a loop,
+              so the seam between the end of set 1 and the start of set 2 is
+              invisible. Hover pauses it so guests can actually look/click. */}
+          <div className="overflow-hidden">
+            <div className="flex gap-3 w-max animate-marquee-ltr hover:[animation-play-state:paused]">
+              {[...gallery, ...gallery].map((p, i) => (
+                <button
+                  key={`${p.id}-${i}`}
                   type="button"
-                  onClick={() => setLightboxIndex(i)}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-40px' }}
-                  transition={{ duration: 0.4, delay: (i % 8) * 0.05 }}
-                  className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer"
+                  onClick={() => setLightboxIndex(i % gallery.length)}
+                  className="group relative flex-shrink-0 w-40 h-40 md:w-56 md:h-56 rounded-xl overflow-hidden bg-gray-100 cursor-pointer"
                 >
-                  <img src={p.thumbnail_url || p.media_url} alt={p.caption || ''} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <img src={p.thumbnail_url || p.media_url} alt={p.caption || ''} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" draggable={false} />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center">
                     <Camera className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </div>
@@ -364,7 +367,7 @@ export default function CoupleWebsite() {
                       <p className="text-white text-xs truncate text-left">{p.caption}</p>
                     </div>
                   )}
-                </motion.button>
+                </button>
               ))}
             </div>
           </div>
