@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { publicApi, guestbookApi } from '../../services/api';
-import { Heart, MapPin, Clock, Gift, Map, Camera, BookOpen, ChevronDown, Loader2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Heart, MapPin, Clock, Gift, Map, Camera, BookOpen, ChevronDown, ChevronLeft, ChevronRight, X, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { format, differenceInDays, differenceInHours, differenceInMinutes, differenceInSeconds } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
@@ -41,6 +41,64 @@ function FloatingDecor({ colors }) {
         </motion.div>
       ))}
     </div>
+  );
+}
+
+// Full-screen photo viewer for the gallery grid - click a thumbnail to open,
+// arrow keys/buttons to move between photos, Escape/backdrop click to close.
+function GalleryLightbox({ photos, index, onClose, onNav }) {
+  const photo = photos[index];
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+      else if (e.key === 'ArrowRight') onNav(1);
+      else if (e.key === 'ArrowLeft') onNav(-1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose, onNav]);
+
+  if (!photo) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors" aria-label="Close">
+        <X className="w-7 h-7" />
+      </button>
+
+      {photos.length > 1 && (
+        <>
+          <button onClick={(e) => { e.stopPropagation(); onNav(-1); }} className="absolute left-2 md:left-6 text-white/60 hover:text-white p-2 transition-colors" aria-label="Previous photo">
+            <ChevronLeft className="w-8 h-8" />
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); onNav(1); }} className="absolute right-2 md:right-6 text-white/60 hover:text-white p-2 transition-colors" aria-label="Next photo">
+            <ChevronRight className="w-8 h-8" />
+          </button>
+        </>
+      )}
+
+      <motion.img
+        key={photo.id}
+        initial={{ scale: 0.96, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.2 }}
+        src={photo.media_url || photo.thumbnail_url}
+        alt={photo.caption || ''}
+        className="max-h-[85vh] max-w-full object-contain rounded-lg"
+        onClick={(e) => e.stopPropagation()}
+      />
+
+      {photo.caption && (
+        <p className="absolute bottom-6 left-0 right-0 text-center text-white/80 text-sm px-4">{photo.caption}</p>
+      )}
+    </motion.div>
   );
 }
 
@@ -90,6 +148,7 @@ export default function CoupleWebsite() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [guestbookEntries, setGuestbookEntries] = useState([]);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
   const { register, handleSubmit, reset } = useForm();
 
   useEffect(() => {
@@ -285,10 +344,27 @@ export default function CoupleWebsite() {
             <h2 className="text-4xl font-serif font-bold text-center mb-2" style={{ color: colors.text, fontFamily: fonts.heading }}>Photo Gallery</h2>
             <div className="w-16 h-0.5 mx-auto mb-12" style={{ background: colors.primary }} />
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {gallery.map(p => (
-                <div key={p.id} className="aspect-square rounded-xl overflow-hidden bg-gray-100">
-                  <img src={p.thumbnail_url || p.media_url} alt={p.caption || ''} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
-                </div>
+              {gallery.map((p, i) => (
+                <motion.button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setLightboxIndex(i)}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-40px' }}
+                  transition={{ duration: 0.4, delay: (i % 8) * 0.05 }}
+                  className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer"
+                >
+                  <img src={p.thumbnail_url || p.media_url} alt={p.caption || ''} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center">
+                    <Camera className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  </div>
+                  {p.caption && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <p className="text-white text-xs truncate text-left">{p.caption}</p>
+                    </div>
+                  )}
+                </motion.button>
               ))}
             </div>
           </div>
@@ -343,6 +419,17 @@ export default function CoupleWebsite() {
         {couple.wedding_date && <p className="text-gray-400 text-sm mt-1">{format(new Date(couple.wedding_date), 'MMMM d, yyyy')}</p>}
         <p className="text-xs text-gray-300 mt-4">Made with ❤️ on AppyCouple</p>
       </footer>
+
+      <AnimatePresence>
+        {lightboxIndex !== null && gallery?.length > 0 && (
+          <GalleryLightbox
+            photos={gallery}
+            index={lightboxIndex}
+            onClose={() => setLightboxIndex(null)}
+            onNav={(dir) => setLightboxIndex((idx) => (idx + dir + gallery.length) % gallery.length)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
