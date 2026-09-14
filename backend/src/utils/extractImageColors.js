@@ -40,7 +40,15 @@ const findOgImage = (html, baseUrl) => {
 const fetchAsImage = async (url, { allowHtmlFallback = true } = {}) => {
   let res;
   try {
-    res = await fetch(url);
+    res = await fetch(url, {
+      headers: {
+        // Canva (and several other share-page hosts) block requests with no
+        // User-Agent as bot traffic and return 403 - a real browser UA gets
+        // through to the same page a person would see.
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+      },
+    });
   } catch {
     throw new Error('Could not reach that URL. Check the link and try again.');
   }

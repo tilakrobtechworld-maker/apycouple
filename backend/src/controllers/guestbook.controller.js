@@ -32,6 +32,27 @@ const getApproved = async (req, res) => {
 };
 
 /**
+ * GET /api/guestbook (protected)
+ * The logged-in couple's own approved entries - unlike getApproved, this
+ * uses the authenticated couple's id instead of a public slug/couple_id
+ * query param.
+ */
+const getAllForCouple = async (req, res) => {
+  try {
+    const coupleId = req.user.coupleProfile.id;
+    const entries = await GuestbookEntry.findAll({
+      where: { couple_id: coupleId, is_approved: true },
+      include: [{ model: Guest, as: 'guest', required: false }],
+      order: [['created_at', 'DESC']],
+    });
+    return success(res, entries, 'Guestbook entries retrieved.');
+  } catch (err) {
+    console.error('getAllForCouple guestbook error:', err);
+    error(res, 'Failed to retrieve guestbook.', 500);
+  }
+};
+
+/**
  * GET /api/guestbook/pending
  * Protected: Moderation queue.
  */
@@ -124,7 +145,7 @@ const deleteEntry = async (req, res) => {
 
 module.exports = {
   getApproved,
-  getAll: getApproved,      // alias used by couple dashboard
+  getAll: getAllForCouple,  // used by couple dashboard
   getPending,
   create,
   approve,

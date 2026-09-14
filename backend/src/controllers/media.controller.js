@@ -227,7 +227,7 @@ const getPublicGallery = async (req, res) => {
     if (!couple) return error(res, 'Wedding not found.', 404);
     const media = await MediaGallery.findAll({
       where: { couple_id: couple.id, is_approved: true },
-      order: [['createdAt', 'DESC']],
+      order: [['created_at', 'DESC']],
       limit: 50,
     });
     return success(res, { media }, 'Gallery retrieved.');

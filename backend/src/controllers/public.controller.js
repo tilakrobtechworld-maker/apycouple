@@ -38,19 +38,19 @@ const getWebsite = async (req, res) => {
       }),
       RegistryItem.findAll({
         where: { couple_id: couple.id },
-        order: [['is_purchased', 'ASC'], ['createdAt', 'ASC']],
+        order: [['is_purchased', 'ASC'], ['created_at', 'ASC']],
       }),
       TravelInfo.findAll({
         where: { couple_id: couple.id },
       }),
       MediaGallery.findAll({
         where: { couple_id: couple.id, is_approved: true },
-        order: [['is_featured', 'DESC'], ['createdAt', 'DESC']],
+        order: [['is_featured', 'DESC'], ['created_at', 'DESC']],
         limit: 50,
       }),
       GuestbookEntry.findAll({
         where: { couple_id: couple.id, is_approved: true },
-        order: [['createdAt', 'DESC']],
+        order: [['created_at', 'DESC']],
         limit: 20,
       }),
     ]);
@@ -91,7 +91,7 @@ const getGallery = async (req, res) => {
     if (!couple) return error(res, 'Not found.', 404);
     const gallery = await MediaGallery.findAll({
       where: { couple_id: couple.id, is_approved: true },
-      order: [['is_featured', 'DESC'], ['createdAt', 'DESC']],
+      order: [['is_featured', 'DESC'], ['created_at', 'DESC']],
     });
     return success(res, gallery, 'Gallery retrieved.');
   } catch (err) {
@@ -108,7 +108,7 @@ const getGuestbook = async (req, res) => {
     if (!couple) return error(res, 'Not found.', 404);
     const entries = await GuestbookEntry.findAll({
       where: { couple_id: couple.id, is_approved: true },
-      order: [['createdAt', 'DESC']],
+      order: [['created_at', 'DESC']],
     });
     return success(res, entries, 'Guestbook retrieved.');
   } catch (err) {
