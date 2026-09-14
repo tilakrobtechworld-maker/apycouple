@@ -7,7 +7,7 @@ import CardElementRenderer from '../../components/card/CardElementRenderer';
 import CardCanvasView from '../../components/card/CardCanvasView';
 import {
   Type, Image as ImageIcon, Square, Circle, Trash2, ChevronUp, ChevronDown,
-  Download, FileImage, Globe, Eye, EyeOff, Loader2, Check, Lock,
+  Download, FileImage, Globe, Eye, EyeOff, Loader2, Check, Lock, Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -235,7 +235,7 @@ export default function CardCreator() {
               {[...elements].sort((a, b) => (b.zIndex || 0) - (a.zIndex || 0)).map((el) => (
                 <button key={el.id} onClick={() => setSelectedId(el.id)}
                   className={`w-full flex items-center gap-2 text-left text-xs px-2 py-1.5 rounded-lg ${selectedId === el.id ? 'bg-primary-50 text-primary-600' : 'hover:bg-gray-50 text-gray-600'}`}>
-                  {el.type === 'text' ? <Type className="w-3 h-3 flex-shrink-0" /> : el.type === 'image' ? <ImageIcon className="w-3 h-3 flex-shrink-0" /> : <Square className="w-3 h-3 flex-shrink-0" />}
+                  {el.type === 'text' ? <Type className="w-3 h-3 flex-shrink-0" /> : el.type === 'image' ? <ImageIcon className="w-3 h-3 flex-shrink-0" /> : el.type === 'icon' ? <Sparkles className="w-3 h-3 flex-shrink-0" /> : <Square className="w-3 h-3 flex-shrink-0" />}
                   <span className="truncate">{el.type === 'text' ? (el.content || 'Text') : el.type}</span>
                 </button>
               ))}
@@ -338,6 +338,19 @@ export default function CardCreator() {
                   <div className="flex items-center justify-between">
                     <label className="label mb-0">Color</label>
                     <input type="color" value={selected.style.background} onChange={(e) => updateStyle(selected.id, { background: e.target.value })} className="w-8 h-8 rounded border border-gray-200" />
+                  </div>
+                  <div>
+                    <label className="label">Opacity: {Math.round((selected.style.opacity ?? 1) * 100)}%</label>
+                    <input type="range" min={0} max={100} value={Math.round((selected.style.opacity ?? 1) * 100)} onChange={(e) => updateStyle(selected.id, { opacity: parseInt(e.target.value, 10) / 100 })} className="w-full" />
+                  </div>
+                </>
+              )}
+
+              {selected.type === 'icon' && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <label className="label mb-0">Color</label>
+                    <input type="color" value={selected.style.color || '#c0392b'} onChange={(e) => updateStyle(selected.id, { color: e.target.value })} className="w-8 h-8 rounded border border-gray-200" />
                   </div>
                   <div>
                     <label className="label">Opacity: {Math.round((selected.style.opacity ?? 1) * 100)}%</label>

@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Image as ImageIcon, Upload, Loader2, Square } from 'lucide-react';
+import { Rnd } from 'react-rnd';
+import {
+  Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Image as ImageIcon, Upload, Loader2, Square,
+  Heart, Sparkles, Sparkle, Star, Flower2, Flower, Feather, Leaf, Sun, Moon,
+  Music2, Bird, Crown, Gift, Cake, Wine, Camera, PartyPopper, Gem, Flame,
+  Diamond, Ribbon,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,6 +17,14 @@ import Modal from '../components/ui/Modal';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Input from '../components/ui/Input';
 
+// Sticker/icon picker - keep this map in sync with the couple-facing renderer
+// at frontend/src/components/card/CardElementRenderer.jsx's DECOR_ICONS.
+const DECOR_ICONS = {
+  Heart, Sparkles, Sparkle, Star, Flower2, Flower, Feather, Leaf, Sun, Moon,
+  Music2, Bird, Crown, Gift, Cake, Wine, Camera, PartyPopper, Gem, Flame,
+  Diamond, Ribbon,
+};
+
 // ─── Validation Schema ─────────────────────────────────────────────────────────
 // Mirrors the { id, type, x, y, width, height, rotation, zIndex, content, style }
 // shape the couple-side Card Creator already reads/writes (backend/src/models/
@@ -18,7 +32,7 @@ import Input from '../components/ui/Input';
 // card the moment they pick this template, with no other code changes needed.
 const elementSchema = z.object({
   id: z.string(),
-  type: z.enum(['image', 'shape']),
+  type: z.enum(['image', 'shape', 'icon']),
   x: z.coerce.number(),
   y: z.coerce.number(),
   width: z.coerce.number().min(1),
@@ -30,6 +44,7 @@ const elementSchema = z.object({
     .object({
       background: z.string().optional(),
       shapeType: z.enum(['rectangle', 'circle']).optional(),
+      color: z.string().optional(),
       opacity: z.coerce.number().optional(),
     })
     .optional(),
@@ -64,6 +79,14 @@ const newShapeElement = () => ({
   x: 100, y: 100, width: 150, height: 150, rotation: 0, zIndex: 5,
   content: '',
   style: { background: '#f43f5e', shapeType: 'rectangle', opacity: 1 },
+});
+
+const newIconElement = (iconName) => ({
+  id: `el-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  type: 'icon',
+  x: 100, y: 100, width: 80, height: 80, rotation: 0, zIndex: 5,
+  content: iconName,
+  style: { color: '#c0392b', opacity: 1 },
 });
 
 // ─── Color Field (swatch + hex text, kept in sync) ─────────────────────────────
@@ -129,6 +152,7 @@ function TemplateFormModal({ isOpen, onClose, initialData, onSave }) {
   const isEditing = !!initialData?.id;
   const [uploading, setUploading] = useState(false);
   const [elementUploading, setElementUploading] = useState(null);
+  const [selectedIndex, setSelectedIndex] = useState(null);
 
   const { register, handleSubmit, reset, watch, setValue, control, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(templateSchema),
@@ -145,7 +169,10 @@ function TemplateFormModal({ isOpen, onClose, initialData, onSave }) {
   // template after the modal has already mounted once would keep showing
   // whichever values were current the first time it opened.
   useEffect(() => {
-    if (isOpen) reset(formDefaults(initialData));
+    if (isOpen) {
+      reset(formDefaults(initialData));
+      setSelectedIndex(null);
+    }
   }, [isOpen, initialData, reset]);
 
   const onSubmit = async (values) => {
@@ -198,8 +225,9 @@ function TemplateFormModal({ isOpen, onClose, initialData, onSave }) {
   const canvasHeight = watch('canvas_height') || 1350;
   const watchedElements = watch('default_elements') || [];
   const previewBg = watch('background_color');
-  const previewBoxWidth = 220;
+  const previewBoxWidth = 280;
   const previewBoxHeight = Math.round(previewBoxWidth * (canvasHeight / canvasWidth));
+  const previewScale = previewBoxWidth / canvasWidth;
 
   return (
     <Modal
@@ -277,92 +305,116 @@ function TemplateFormModal({ isOpen, onClose, initialData, onSave }) {
               Design Elements <span className="text-slate-400 font-normal">(decorations placed on the card — couples can move/resize these)</span>
             </h4>
             <div className="flex gap-2 flex-shrink-0">
-              <Button type="button" variant="secondary" size="sm" icon={<ImageIcon size={13} />} onClick={() => appendElement(newImageElement())}>Image</Button>
-              <Button type="button" variant="secondary" size="sm" icon={<Square size={13} />} onClick={() => appendElement(newShapeElement())}>Shape</Button>
+              <Button type="button" variant="secondary" size="sm" icon={<ImageIcon size={13} />} onClick={() => { appendElement(newImageElement()); setSelectedIndex(elementFields.length); }}>Image</Button>
+              <Button type="button" variant="secondary" size="sm" icon={<Square size={13} />} onClick={() => { appendElement(newShapeElement()); setSelectedIndex(elementFields.length); }}>Shape</Button>
             </div>
+          </div>
+
+          {/* Sticker gallery - click to drop a ready-made decorative icon onto the canvas below */}
+          <div className="mb-3 p-2 rounded-lg bg-slate-50 border border-slate-200 grid grid-cols-9 sm:grid-cols-11 gap-1">
+            {Object.entries(DECOR_ICONS).map(([name, Icon]) => (
+              <button
+                key={name}
+                type="button"
+                title={name}
+                onClick={() => { appendElement(newIconElement(name)); setSelectedIndex(elementFields.length); }}
+                className="aspect-square flex items-center justify-center rounded text-slate-500 hover:bg-white hover:text-rose-500 hover:shadow-sm transition-colors"
+              >
+                <Icon size={16} />
+              </button>
+            ))}
           </div>
 
           {elementFields.length > 0 && (
-            <div
-              className="relative mb-4 border border-slate-200 rounded-lg overflow-hidden bg-slate-100"
-              style={{
-                width: previewBoxWidth,
-                height: previewBoxHeight,
-                backgroundColor: previewBg,
-              }}
-            >
-              {watchedElements.map((el, i) => (
-                <div
-                  key={elementFields[i]?.id || i}
-                  style={{
-                    position: 'absolute',
-                    left: `${((el.x || 0) / canvasWidth) * 100}%`,
-                    top: `${((el.y || 0) / canvasHeight) * 100}%`,
-                    width: `${((el.width || 1) / canvasWidth) * 100}%`,
-                    height: `${((el.height || 1) / canvasHeight) * 100}%`,
-                    transform: `rotate(${el.rotation || 0}deg)`,
-                    zIndex: el.zIndex || 1,
-                  }}
-                >
-                  {el.type === 'image' ? (
-                    el.content
-                      ? <img src={el.content} alt="" className="w-full h-full object-contain" />
-                      : <div className="w-full h-full bg-slate-200 border border-dashed border-slate-300" />
-                  ) : (
-                    <div
-                      className="w-full h-full"
-                      style={{
-                        background: el.style?.background || '#f43f5e',
-                        borderRadius: el.style?.shapeType === 'circle' ? '50%' : 0,
-                        opacity: el.style?.opacity ?? 1,
-                      }}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
+            <>
+              <p className="text-xs text-slate-400 mb-2">Drag to move, drag a corner to resize. Click a piece to edit its color/rotation below.</p>
+              <div
+                className="relative mb-4 border border-slate-200 rounded-lg overflow-hidden bg-slate-100 select-none"
+                style={{ width: previewBoxWidth, height: previewBoxHeight, backgroundColor: previewBg }}
+              >
+                {watchedElements.map((el, i) => (
+                  <Rnd
+                    key={elementFields[i]?.id || i}
+                    bounds="parent"
+                    size={{ width: Math.max(1, (el.width || 1) * previewScale), height: Math.max(1, (el.height || 1) * previewScale) }}
+                    position={{ x: (el.x || 0) * previewScale, y: (el.y || 0) * previewScale }}
+                    style={{ zIndex: el.zIndex || 1, outline: selectedIndex === i ? '2px solid #6366f1' : 'none' }}
+                    onDragStart={() => setSelectedIndex(i)}
+                    onDragStop={(e, d) => {
+                      setValue(`default_elements.${i}.x`, Math.round(d.x / previewScale), { shouldDirty: true });
+                      setValue(`default_elements.${i}.y`, Math.round(d.y / previewScale), { shouldDirty: true });
+                    }}
+                    onResizeStart={() => setSelectedIndex(i)}
+                    onResizeStop={(e, dir, ref, delta, position) => {
+                      setValue(`default_elements.${i}.width`, Math.round(ref.offsetWidth / previewScale), { shouldDirty: true });
+                      setValue(`default_elements.${i}.height`, Math.round(ref.offsetHeight / previewScale), { shouldDirty: true });
+                      setValue(`default_elements.${i}.x`, Math.round(position.x / previewScale), { shouldDirty: true });
+                      setValue(`default_elements.${i}.y`, Math.round(position.y / previewScale), { shouldDirty: true });
+                    }}
+                  >
+                    {el.type === 'image' ? (
+                      el.content
+                        ? <img src={el.content} alt="" className="w-full h-full object-contain" draggable={false} />
+                        : <div className="w-full h-full bg-slate-200 border border-dashed border-slate-300" />
+                    ) : el.type === 'icon' ? (
+                      (() => {
+                        const Icon = DECOR_ICONS[el.content] || Sparkles;
+                        return <Icon className="w-full h-full" color={el.style?.color || '#c0392b'} style={{ opacity: el.style?.opacity ?? 1 }} />;
+                      })()
+                    ) : (
+                      <div
+                        className="w-full h-full"
+                        style={{
+                          background: el.style?.background || '#f43f5e',
+                          borderRadius: el.style?.shapeType === 'circle' ? '50%' : 0,
+                          opacity: el.style?.opacity ?? 1,
+                        }}
+                      />
+                    )}
+                  </Rnd>
+                ))}
+              </div>
+            </>
           )}
 
-          <div className="space-y-3">
-            {elementFields.map((field, index) => {
-              const type = watch(`default_elements.${index}.type`);
-              return (
-                <div key={field.id} className="border border-slate-200 rounded-lg p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                      {type === 'image' ? 'Image' : 'Shape'} #{index + 1}
-                    </span>
-                    <button type="button" onClick={() => removeElement(index)} className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Remove element">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-
-                  {type === 'image' ? (
-                    <div className="flex items-center gap-2">
-                      <input {...register(`default_elements.${index}.content`)} className="admin-input text-xs flex-1" placeholder="https://… (a direct image link)" />
-                      <label className={`flex-shrink-0 flex items-center gap-1 px-2 py-1.5 rounded border text-xs cursor-pointer transition-colors ${elementUploading === index ? 'opacity-60 pointer-events-none' : 'border-slate-300 text-slate-600 hover:bg-slate-50'}`}>
-                        {elementUploading === index ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleElementImageUpload(index, e)} disabled={elementUploading === index} />
-                      </label>
-                    </div>
-                  ) : (
-                    <ColorField label="Shape Color" watch={watch} setValue={setValue} name={`default_elements.${index}.style.background`} />
-                  )}
-
-                  <div className="grid grid-cols-4 gap-2">
-                    <Input label="X" type="number" {...register(`default_elements.${index}.x`)} />
-                    <Input label="Y" type="number" {...register(`default_elements.${index}.y`)} />
-                    <Input label="Width" type="number" {...register(`default_elements.${index}.width`)} />
-                    <Input label="Height" type="number" {...register(`default_elements.${index}.height`)} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input label="Rotation (°)" type="number" {...register(`default_elements.${index}.rotation`)} />
-                    <Input label="Layer (z-index)" type="number" {...register(`default_elements.${index}.zIndex`)} />
-                  </div>
+          {elementFields.length > 0 && selectedIndex != null && elementFields[selectedIndex] && (() => {
+            const index = selectedIndex;
+            const type = watch(`default_elements.${index}.type`);
+            return (
+              <div key={elementFields[index].id} className="border border-indigo-200 bg-indigo-50/40 rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    {type === 'image' ? 'Image' : type === 'icon' ? `Icon (${watch(`default_elements.${index}.content`)})` : 'Shape'} — selected
+                  </span>
+                  <button type="button" onClick={() => { removeElement(index); setSelectedIndex(null); }} className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Remove element">
+                    <Trash2 size={14} />
+                  </button>
                 </div>
-              );
-            })}
-          </div>
+
+                {type === 'image' && (
+                  <div className="flex items-center gap-2">
+                    <input {...register(`default_elements.${index}.content`)} className="admin-input text-xs flex-1" placeholder="https://… (a direct image link)" />
+                    <label className={`flex-shrink-0 flex items-center gap-1 px-2 py-1.5 rounded border text-xs cursor-pointer transition-colors ${elementUploading === index ? 'opacity-60 pointer-events-none' : 'border-slate-300 text-slate-600 hover:bg-slate-50'}`}>
+                      {elementUploading === index ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleElementImageUpload(index, e)} disabled={elementUploading === index} />
+                    </label>
+                  </div>
+                )}
+                {type === 'shape' && (
+                  <ColorField label="Shape Color" watch={watch} setValue={setValue} name={`default_elements.${index}.style.background`} />
+                )}
+                {type === 'icon' && (
+                  <ColorField label="Icon Color" watch={watch} setValue={setValue} name={`default_elements.${index}.style.color`} />
+                )}
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Input label="Rotation (°)" type="number" {...register(`default_elements.${index}.rotation`)} />
+                  <Input label="Layer (z-index)" type="number" {...register(`default_elements.${index}.zIndex`)} />
+                </div>
+              </div>
+            );
+          })()}
+
           {elementFields.length === 0 && (
             <p className="text-xs text-slate-400">No extra elements — the couple will start with just the default heading/date text for this template.</p>
           )}

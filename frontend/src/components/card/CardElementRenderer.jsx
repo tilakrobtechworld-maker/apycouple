@@ -1,9 +1,36 @@
+import {
+  Heart, Sparkles, Sparkle, Star, Flower2, Flower, Feather, Leaf, Sun, Moon,
+  Music2, Bird, Crown, Gift, Cake, Wine, Camera, PartyPopper, Gem, Flame,
+  Diamond, Ribbon,
+} from 'lucide-react';
+
+// Sticker/icon elements (added from the admin's Card Template "Design
+// Elements" picker) store just the icon's name in `content` - keep this map
+// in sync with admin/src/pages/CardTemplatesPage.jsx's DECOR_ICONS.
+const DECOR_ICONS = {
+  Heart, Sparkles, Sparkle, Star, Flower2, Flower, Feather, Leaf, Sun, Moon,
+  Music2, Bird, Crown, Gift, Cake, Wine, Camera, PartyPopper, Gem, Flame,
+  Diamond, Ribbon,
+};
+
 // Pure content renderer for one card element. Used by both the interactive
 // editor (wrapped in a draggable/resizable box) and the read-only views
 // (public card page, export snapshot) so text/image/shape rendering never
 // drifts between what the couple edits and what guests actually see.
 export default function CardElementRenderer({ element }) {
   const { type, content, style = {} } = element;
+
+  if (type === 'icon') {
+    const Icon = DECOR_ICONS[content] || Sparkles;
+    return (
+      <Icon
+        style={{ width: '100%', height: '100%', opacity: style.opacity ?? 1 }}
+        color={style.color || '#c0392b'}
+        strokeWidth={style.strokeWidth || 1.5}
+        fill={style.filled ? (style.color || '#c0392b') : 'none'}
+      />
+    );
+  }
 
   if (type === 'text') {
     return (
