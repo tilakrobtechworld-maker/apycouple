@@ -1,10 +1,48 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { publicApi, guestbookApi } from '../../services/api';
 import { Heart, MapPin, Clock, Gift, Map, Camera, BookOpen, ChevronDown, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { format, differenceInDays, differenceInHours, differenceInMinutes, differenceInSeconds } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
+
+// Ambient floating hearts, themed off the couple's own colors - fixed to the
+// viewport (not the page's scroll height) so it reads as one continuous
+// effect no matter where the guest has scrolled to, sitting above section
+// backgrounds (so it isn't just painted over) but below the nav and below
+// pointer events so it never blocks clicks/taps.
+function FloatingDecor({ colors }) {
+  const items = useMemo(() => {
+    const palette = [colors.primary || '#f43f5e', colors.secondary || '#eab308', colors.accent || '#8b5cf6'];
+    return Array.from({ length: 12 }, (_, i) => ({
+      id: i,
+      left: 4 + ((i * 37) % 92),
+      size: 10 + ((i * 7) % 16),
+      color: palette[i % palette.length],
+      duration: 16 + ((i * 5) % 14),
+      delay: (i * 1.7) % 12,
+      drift: ((i % 2 === 0 ? 1 : -1) * (20 + (i * 11) % 40)),
+    }));
+  }, [colors.primary, colors.secondary, colors.accent]);
+
+  return (
+    <div className="fixed inset-0 overflow-hidden pointer-events-none z-40" aria-hidden="true">
+      {items.map((it) => (
+        <motion.div
+          key={it.id}
+          className="absolute"
+          style={{ left: `${it.left}%`, top: '105%' }}
+          initial={{ y: 0, x: 0, opacity: 0, rotate: 0 }}
+          animate={{ y: '-120vh', x: [0, it.drift, 0], opacity: [0, 0.55, 0.55, 0], rotate: 180 }}
+          transition={{ duration: it.duration, delay: it.delay, repeat: Infinity, ease: 'linear' }}
+        >
+          <Heart size={it.size} style={{ color: it.color }} fill={it.color} fillOpacity={0.6} />
+        </motion.div>
+      ))}
+    </div>
+  );
+}
 
 function CountdownTimer({ date }) {
   const [timeLeft, setTimeLeft] = useState({});
@@ -120,6 +158,8 @@ export default function CoupleWebsite() {
 
   return (
     <div style={cssVars} className="min-h-screen">
+      <FloatingDecor colors={colors} />
+
       {/* Sticky Nav */}
       <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-sm border-b border-gray-100 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 flex items-center justify-between h-14">
