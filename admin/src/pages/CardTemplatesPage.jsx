@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Image as ImageIcon, Upload, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Image as ImageIcon, Upload, Loader2, Square } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { adminApi } from '../services/api';
@@ -12,6 +12,29 @@ import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Input from '../components/ui/Input';
 
 // ─── Validation Schema ─────────────────────────────────────────────────────────
+// Mirrors the { id, type, x, y, width, height, rotation, zIndex, content, style }
+// shape the couple-side Card Creator already reads/writes (backend/src/models/
+// CardTemplate.js) - these become movable/editable elements on the couple's
+// card the moment they pick this template, with no other code changes needed.
+const elementSchema = z.object({
+  id: z.string(),
+  type: z.enum(['image', 'shape']),
+  x: z.coerce.number(),
+  y: z.coerce.number(),
+  width: z.coerce.number().min(1),
+  height: z.coerce.number().min(1),
+  rotation: z.coerce.number().optional().default(0),
+  zIndex: z.coerce.number().optional().default(1),
+  content: z.string().optional(),
+  style: z
+    .object({
+      background: z.string().optional(),
+      shapeType: z.enum(['rectangle', 'circle']).optional(),
+      opacity: z.coerce.number().optional(),
+    })
+    .optional(),
+});
+
 const templateSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   description: z.string().optional(),
@@ -24,6 +47,23 @@ const templateSchema = z.object({
   canvas_height: z.coerce.number().int().min(200),
   is_premium: z.boolean().optional(),
   sort_order: z.coerce.number().int().optional(),
+  default_elements: z.array(elementSchema).optional().default([]),
+});
+
+const newImageElement = () => ({
+  id: `el-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  type: 'image',
+  x: 100, y: 100, width: 200, height: 200, rotation: 0, zIndex: 5,
+  content: '',
+  style: { opacity: 1 },
+});
+
+const newShapeElement = () => ({
+  id: `el-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  type: 'shape',
+  x: 100, y: 100, width: 150, height: 150, rotation: 0, zIndex: 5,
+  content: '',
+  style: { background: '#f43f5e', shapeType: 'rectangle', opacity: 1 },
 });
 
 // ─── Color Field (swatch + hex text, kept in sync) ─────────────────────────────
@@ -73,6 +113,7 @@ function formDefaults(initialData) {
         canvas_height: initialData.canvas_height || 1350,
         is_premium: initialData.is_premium || false,
         sort_order: initialData.sort_order || 0,
+        default_elements: initialData.default_elements || [],
       }
     : {
         name: '', description: '', preview_image_url: '',
@@ -80,16 +121,22 @@ function formDefaults(initialData) {
         heading_font: 'Playfair Display', body_font: 'Lato',
         canvas_width: 1080, canvas_height: 1350,
         is_premium: false, sort_order: 0,
+        default_elements: [],
       };
 }
 
 function TemplateFormModal({ isOpen, onClose, initialData, onSave }) {
   const isEditing = !!initialData?.id;
   const [uploading, setUploading] = useState(false);
+  const [elementUploading, setElementUploading] = useState(null);
 
-  const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, reset, watch, setValue, control, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(templateSchema),
     defaultValues: formDefaults(initialData),
+  });
+  const { fields: elementFields, append: appendElement, remove: removeElement } = useFieldArray({
+    control,
+    name: 'default_elements',
   });
 
   // This modal is mounted once by the parent and stays mounted while `isOpen`
@@ -128,6 +175,31 @@ function TemplateFormModal({ isOpen, onClose, initialData, onSave }) {
       e.target.value = '';
     }
   };
+
+  const handleElementImageUpload = async (index, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setElementUploading(index);
+    try {
+      const fd = new FormData();
+      fd.append('photo', file);
+      const { data } = await adminApi.uploadCardTemplateImage(fd);
+      setValue(`default_elements.${index}.content`, data.data.url, { shouldValidate: true, shouldDirty: true });
+      toast.success('Image uploaded');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Upload failed');
+    } finally {
+      setElementUploading(null);
+      e.target.value = '';
+    }
+  };
+
+  const canvasWidth = watch('canvas_width') || 1080;
+  const canvasHeight = watch('canvas_height') || 1350;
+  const watchedElements = watch('default_elements') || [];
+  const previewBg = watch('background_color');
+  const previewBoxWidth = 220;
+  const previewBoxHeight = Math.round(previewBoxWidth * (canvasHeight / canvasWidth));
 
   return (
     <Modal
@@ -197,6 +269,103 @@ function TemplateFormModal({ isOpen, onClose, initialData, onSave }) {
             <Input label="Body Font" error={errors.body_font?.message} {...register('body_font')} placeholder="Lato" />
           </div>
           <p className="text-xs text-slate-400 mt-2">Used to generate the template's default text layout — couples can restyle everything afterward in the Card Creator.</p>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-3 gap-3">
+            <h4 className="text-sm font-semibold text-slate-700">
+              Design Elements <span className="text-slate-400 font-normal">(decorations placed on the card — couples can move/resize these)</span>
+            </h4>
+            <div className="flex gap-2 flex-shrink-0">
+              <Button type="button" variant="secondary" size="sm" icon={<ImageIcon size={13} />} onClick={() => appendElement(newImageElement())}>Image</Button>
+              <Button type="button" variant="secondary" size="sm" icon={<Square size={13} />} onClick={() => appendElement(newShapeElement())}>Shape</Button>
+            </div>
+          </div>
+
+          {elementFields.length > 0 && (
+            <div
+              className="relative mb-4 border border-slate-200 rounded-lg overflow-hidden bg-slate-100"
+              style={{
+                width: previewBoxWidth,
+                height: previewBoxHeight,
+                backgroundColor: previewBg,
+              }}
+            >
+              {watchedElements.map((el, i) => (
+                <div
+                  key={elementFields[i]?.id || i}
+                  style={{
+                    position: 'absolute',
+                    left: `${((el.x || 0) / canvasWidth) * 100}%`,
+                    top: `${((el.y || 0) / canvasHeight) * 100}%`,
+                    width: `${((el.width || 1) / canvasWidth) * 100}%`,
+                    height: `${((el.height || 1) / canvasHeight) * 100}%`,
+                    transform: `rotate(${el.rotation || 0}deg)`,
+                    zIndex: el.zIndex || 1,
+                  }}
+                >
+                  {el.type === 'image' ? (
+                    el.content
+                      ? <img src={el.content} alt="" className="w-full h-full object-contain" />
+                      : <div className="w-full h-full bg-slate-200 border border-dashed border-slate-300" />
+                  ) : (
+                    <div
+                      className="w-full h-full"
+                      style={{
+                        background: el.style?.background || '#f43f5e',
+                        borderRadius: el.style?.shapeType === 'circle' ? '50%' : 0,
+                        opacity: el.style?.opacity ?? 1,
+                      }}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {elementFields.map((field, index) => {
+              const type = watch(`default_elements.${index}.type`);
+              return (
+                <div key={field.id} className="border border-slate-200 rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      {type === 'image' ? 'Image' : 'Shape'} #{index + 1}
+                    </span>
+                    <button type="button" onClick={() => removeElement(index)} className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Remove element">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+
+                  {type === 'image' ? (
+                    <div className="flex items-center gap-2">
+                      <input {...register(`default_elements.${index}.content`)} className="admin-input text-xs flex-1" placeholder="https://… (a direct image link)" />
+                      <label className={`flex-shrink-0 flex items-center gap-1 px-2 py-1.5 rounded border text-xs cursor-pointer transition-colors ${elementUploading === index ? 'opacity-60 pointer-events-none' : 'border-slate-300 text-slate-600 hover:bg-slate-50'}`}>
+                        {elementUploading === index ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleElementImageUpload(index, e)} disabled={elementUploading === index} />
+                      </label>
+                    </div>
+                  ) : (
+                    <ColorField label="Shape Color" watch={watch} setValue={setValue} name={`default_elements.${index}.style.background`} />
+                  )}
+
+                  <div className="grid grid-cols-4 gap-2">
+                    <Input label="X" type="number" {...register(`default_elements.${index}.x`)} />
+                    <Input label="Y" type="number" {...register(`default_elements.${index}.y`)} />
+                    <Input label="Width" type="number" {...register(`default_elements.${index}.width`)} />
+                    <Input label="Height" type="number" {...register(`default_elements.${index}.height`)} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input label="Rotation (°)" type="number" {...register(`default_elements.${index}.rotation`)} />
+                    <Input label="Layer (z-index)" type="number" {...register(`default_elements.${index}.zIndex`)} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {elementFields.length === 0 && (
+            <p className="text-xs text-slate-400">No extra elements — the couple will start with just the default heading/date text for this template.</p>
+          )}
         </div>
 
         <div className="flex items-center gap-6">
@@ -295,6 +464,15 @@ export default function CardTemplatesPage() {
       is_premium: values.is_premium,
       sort_order: values.sort_order,
     };
+    if (id) {
+      // Editing: always send the current elements, even if the admin cleared
+      // them all intentionally - this is the template's real, current state.
+      payload.default_elements = values.default_elements || [];
+    } else if (values.default_elements && values.default_elements.length > 0) {
+      // Creating: only override the backend's auto-generated heading/date
+      // starter layout when the admin actually added elements here.
+      payload.default_elements = values.default_elements;
+    }
     try {
       if (id) {
         await adminApi.updateCardTemplate(id, payload);
