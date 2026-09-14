@@ -56,9 +56,11 @@ const resolveDesignImage = async ({ preview_image_url, background_image_url, bac
   if (!imageUrl) return result;
 
   // Let this throw — an image link that can't actually be read as an image
-  // should block saving with a clear reason, not silently fall back to a
-  // plain default that looks nothing like what the admin pasted.
-  const { backgroundColor, textColor } = await extractImageColors(imageUrl);
+  // (even after trying an og:image fallback for share/editor pages) should
+  // block saving with a clear reason, not silently fall back to a plain
+  // default that looks nothing like what the admin pasted.
+  const { resolvedUrl, backgroundColor, textColor } = await extractImageColors(imageUrl);
+  result.background_image_url = resolvedUrl;
   result.background_color = backgroundColor;
   result.text_color = textColor;
 
