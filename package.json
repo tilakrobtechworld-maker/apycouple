@@ -1,0 +1,15 @@
+{
+  "name": "appycouple-clone",
+  "version": "1.0.0",
+  "description": "Full-stack Appy Couple wedding platform clone",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && npm install --prefix backend --legacy-peer-deps && npm install --prefix frontend --legacy-peer-deps && npm install --prefix admin --legacy-peer-deps",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:admin": "npm run dev --prefix admin",
+    "build:frontend": "npm run build --prefix frontend",
+    "build:admin": "npm run build --prefix admin"
+  }
+}
+

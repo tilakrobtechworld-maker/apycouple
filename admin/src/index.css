@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base Resets ─────────────────────────────────── */
+@layer base {
+  * {
+    @apply box-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-800 font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold text-slate-900;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-100;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-400 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-500;
+  }
+}
+
+/* ─── Component Utilities ─────────────────────────── */
+@layer components {
+  /* Admin sidebar */
+  .admin-sidebar-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200 text-sm font-medium cursor-pointer;
+  }
+  .admin-sidebar-link.active {
+    @apply text-white bg-indigo-700;
+  }
+
+  /* Card base */
+  .admin-card {
+    @apply bg-white rounded-xl border border-slate-200 shadow-card p-6;
+  }
+
+  /* Table */
+  .admin-table th {
+    @apply px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-50 border-b border-slate-200;
+  }
+  .admin-table td {
+    @apply px-4 py-3 text-sm text-slate-700 border-b border-slate-100;
+  }
+  .admin-table tr:hover td {
+    @apply bg-slate-50;
+  }
+  .admin-table tr:last-child td {
+    @apply border-b-0;
+  }
+
+  /* Form inputs */
+  .admin-input {
+    @apply w-full px-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-800 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors;
+  }
+  .admin-input:disabled {
+    @apply bg-slate-50 text-slate-400 cursor-not-allowed;
+  }
+  .admin-input-error {
+    @apply border-red-400 focus:ring-red-400 focus:border-red-400;
+  }
+
+  /* Select */
+  .admin-select {
+    @apply admin-input cursor-pointer appearance-none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+    padding-right: 36px;
+  }
+
+  /* Badge base */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  /* Stat card trend */
+  .trend-up {
+    @apply text-emerald-600 bg-emerald-50;
+  }
+  .trend-down {
+    @apply text-red-500 bg-red-50;
+  }
+}
+
+/* ─── Animations ──────────────────────────────────── */
+@layer utilities {
+  .animate-shimmer {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+}
