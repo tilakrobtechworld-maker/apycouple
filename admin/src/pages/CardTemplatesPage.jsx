@@ -26,35 +26,80 @@ const templateSchema = z.object({
   sort_order: z.coerce.number().int().optional(),
 });
 
+// ─── Color Field (swatch + hex text, kept in sync) ─────────────────────────────
+// A bare `<input type="color">` and `<input type="text">` both registered to
+// the same RHF field name look right but silently fall out of sync — each is
+// an independent uncontrolled DOM node, so picking a color in the swatch
+// doesn't update what the text box displays (or vice versa), and whichever
+// one last wrote to the ref isn't reliably what ends up submitted. Making
+// both inputs fully controlled off the one watch()'d value, through the same
+// setValue() call, removes the ambiguity — there's only one source of truth.
+function ColorField({ label, watch, setValue, name }) {
+  const value = watch(name) || '';
+  const set = (v) => setValue(name, v, { shouldValidate: true, shouldDirty: true });
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-xs font-medium text-slate-600">{label}</label>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={/^#[0-9a-fA-F]{6}$/.test(value) ? value : '#000000'}
+          onChange={(e) => set(e.target.value)}
+          className="w-8 h-8 rounded cursor-pointer border border-slate-300 flex-shrink-0"
+        />
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => set(e.target.value)}
+          className="admin-input text-xs flex-1"
+        />
+      </div>
+    </div>
+  );
+}
+
 // ─── Template Form Modal ───────────────────────────────────────────────────────
+function formDefaults(initialData) {
+  return initialData
+    ? {
+        name: initialData.name,
+        description: initialData.description || '',
+        preview_image_url: initialData.preview_image_url || '',
+        background_color: initialData.background_color || '#fffaf0',
+        text_color: initialData.text_color || '#2c2c2c',
+        heading_font: initialData.heading_font || 'Playfair Display',
+        body_font: initialData.body_font || 'Lato',
+        canvas_width: initialData.canvas_width || 1080,
+        canvas_height: initialData.canvas_height || 1350,
+        is_premium: initialData.is_premium || false,
+        sort_order: initialData.sort_order || 0,
+      }
+    : {
+        name: '', description: '', preview_image_url: '',
+        background_color: '#fffaf0', text_color: '#2c2c2c',
+        heading_font: 'Playfair Display', body_font: 'Lato',
+        canvas_width: 1080, canvas_height: 1350,
+        is_premium: false, sort_order: 0,
+      };
+}
+
 function TemplateFormModal({ isOpen, onClose, initialData, onSave }) {
   const isEditing = !!initialData?.id;
   const [uploading, setUploading] = useState(false);
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(templateSchema),
-    defaultValues: initialData
-      ? {
-          name: initialData.name,
-          description: initialData.description || '',
-          preview_image_url: initialData.preview_image_url || '',
-          background_color: initialData.background_color || '#fffaf0',
-          text_color: '#2c2c2c',
-          heading_font: 'Playfair Display',
-          body_font: 'Lato',
-          canvas_width: initialData.canvas_width || 1080,
-          canvas_height: initialData.canvas_height || 1350,
-          is_premium: initialData.is_premium || false,
-          sort_order: initialData.sort_order || 0,
-        }
-      : {
-          name: '', description: '', preview_image_url: '',
-          background_color: '#fffaf0', text_color: '#2c2c2c',
-          heading_font: 'Playfair Display', body_font: 'Lato',
-          canvas_width: 1080, canvas_height: 1350,
-          is_premium: false, sort_order: 0,
-        },
+    defaultValues: formDefaults(initialData),
   });
+
+  // This modal is mounted once by the parent and stays mounted while `isOpen`
+  // toggles (so it can animate out) - react-hook-form's `defaultValues` are
+  // only read at that first mount, so without this, opening "Edit" on a
+  // template after the modal has already mounted once would keep showing
+  // whichever values were current the first time it opened.
+  useEffect(() => {
+    if (isOpen) reset(formDefaults(initialData));
+  }, [isOpen, initialData, reset]);
 
   const onSubmit = async (values) => {
     const ok = await onSave(values, isEditing ? initialData.id : null);
@@ -140,20 +185,8 @@ function TemplateFormModal({ isOpen, onClose, initialData, onSave }) {
         <div>
           <h4 className="text-sm font-semibold text-slate-700 mb-3">Colors <span className="text-slate-400 font-normal">(used only if no design image is set above)</span></h4>
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-slate-600">Background</label>
-              <div className="flex items-center gap-2">
-                <input type="color" {...register('background_color')} className="w-8 h-8 rounded cursor-pointer border border-slate-300" />
-                <input type="text" {...register('background_color')} className="admin-input text-xs flex-1" />
-              </div>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-slate-600">Default Text Color</label>
-              <div className="flex items-center gap-2">
-                <input type="color" {...register('text_color')} className="w-8 h-8 rounded cursor-pointer border border-slate-300" />
-                <input type="text" {...register('text_color')} className="admin-input text-xs flex-1" />
-              </div>
-            </div>
+            <ColorField label="Background" watch={watch} setValue={setValue} name="background_color" />
+            <ColorField label="Default Text Color" watch={watch} setValue={setValue} name="text_color" />
           </div>
         </div>
 
