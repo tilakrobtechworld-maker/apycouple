@@ -23,6 +23,9 @@ process.on('uncaughtException', (err) => {
 });
 
 const app = express();
+// Render (like Heroku) sits behind a reverse proxy - trust its X-Forwarded-For
+// header so express-rate-limit and req.ip see the real client IP.
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 
 // ─── Initialize Socket.io ─────────────────────────────────────────────────────
