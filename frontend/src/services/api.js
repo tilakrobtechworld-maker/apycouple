@@ -1,6 +1,17 @@
 import axios from 'axios';
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+// VITE_API_BASE_URL may be a full URL ("http://localhost:5000/api") or a bare
+// host (Render's cross-service env vars only provide the hostname, e.g.
+// "appycouple-backend.onrender.com") - normalize either form to a full URL.
+function resolveApiBaseUrl() {
+  const raw = import.meta.env.VITE_API_BASE_URL;
+  if (!raw) return '/api';
+  const withScheme = /^https?:\/\//.test(raw) ? raw : `https://${raw}`;
+  const trimmed = withScheme.replace(/\/+$/, '');
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 const api = axios.create({ baseURL: API_BASE_URL });
 

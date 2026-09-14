@@ -1,6 +1,7 @@
 'use strict';
 
 const { Server } = require('socket.io');
+const { toOrigin } = require('../utils/toOrigin');
 
 let io = null;
 
@@ -13,8 +14,8 @@ const initSocket = (server) => {
   io = new Server(server, {
     cors: {
       origin: [
-        process.env.FRONTEND_URL || 'http://localhost:3000',
-        process.env.ADMIN_URL || 'http://localhost:3001',
+        toOrigin(process.env.FRONTEND_URL, 'http://localhost:3000'),
+        toOrigin(process.env.ADMIN_URL, 'http://localhost:3001'),
       ],
       methods: ['GET', 'POST'],
       credentials: true,

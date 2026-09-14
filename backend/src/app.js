@@ -14,6 +14,7 @@ const routes = require('./routes');
 const { initSocket } = require('./services/socket.service');
 const { success, error } = require('./utils/apiResponse');
 const { shouldAlterSync } = require('./utils/shouldAlterSync');
+const { toOrigin } = require('./utils/toOrigin');
 
 // ─── Handle uncaught exceptions early ────────────────────────────────────────
 process.on('uncaughtException', (err) => {
@@ -32,8 +33,8 @@ app.use(helmet());
 app.use(
   cors({
     origin: [
-      process.env.FRONTEND_URL || 'http://localhost:3000',
-      process.env.ADMIN_URL || 'http://localhost:3001',
+      toOrigin(process.env.FRONTEND_URL, 'http://localhost:3000'),
+      toOrigin(process.env.ADMIN_URL, 'http://localhost:3001'),
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
