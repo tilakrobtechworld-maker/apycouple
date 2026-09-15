@@ -11,7 +11,7 @@ const cloudinaryConfigured =
   process.env.CLOUDINARY_API_KEY &&
   process.env.CLOUDINARY_API_SECRET;
 
-let uploadPhoto, uploadMedia, uploadCSV;
+let uploadPhoto, uploadMedia, uploadCSV, upload3DModel;
 
 if (cloudinaryConfigured) {
   // ── Cloudinary Storage (when env vars are set) ──────────────────────────────
@@ -42,6 +42,26 @@ if (cloudinaryConfigured) {
     storage: cloudinaryStorage,
     limits: { fileSize: 100 * 1024 * 1024 },
   }).single('media');
+
+  // 3D model files (.glb/.gltf) - Cloudinary treats these as opaque binary
+  // ("raw"), not image/video, so they need their own storage config.
+  const model3DStorage = new CloudinaryStorage({
+    cloudinary,
+    params: async () => ({
+      folder: 'savethedate/models',
+      resource_type: 'raw',
+      allowed_formats: ['glb', 'gltf'],
+    }),
+  });
+
+  upload3DModel = multer({
+    storage: model3DStorage,
+    fileFilter: (req, file, cb) => {
+      if (/\.(glb|gltf)$/i.test(file.originalname)) cb(null, true);
+      else cb(new Error('Only .glb or .gltf 3D model files are allowed.'), false);
+    },
+    limits: { fileSize: 25 * 1024 * 1024 },
+  }).single('model');
 
   console.log('✅ Upload: Using Cloudinary storage.');
 } else {
@@ -76,6 +96,15 @@ if (cloudinaryConfigured) {
     fileFilter: mediaFilter,
     limits: { fileSize: 100 * 1024 * 1024 },
   }).single('media');
+
+  upload3DModel = multer({
+    storage: diskStorage,
+    fileFilter: (req, file, cb) => {
+      if (/\.(glb|gltf)$/i.test(file.originalname)) cb(null, true);
+      else cb(new Error('Only .glb or .gltf 3D model files are allowed.'), false);
+    },
+    limits: { fileSize: 25 * 1024 * 1024 },
+  }).single('model');
 }
 
 // ─── CSV Upload (always memory) ───────────────────────────────────────────────
@@ -91,4 +120,4 @@ uploadCSV = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 }).single('file');
 
-module.exports = { uploadPhoto, uploadMedia, uploadCSV };
+module.exports = { uploadPhoto, uploadMedia, uploadCSV, upload3DModel };

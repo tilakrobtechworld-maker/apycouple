@@ -62,6 +62,7 @@ const themeSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   description: z.string().optional(),
   preview_image_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  model_3d_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   primary_color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Must be a valid hex color'),
   secondary_color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Must be a valid hex color'),
   accent_color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Must be a valid hex color'),
@@ -79,6 +80,7 @@ function formDefaults(initialData) {
         name: initialData.name,
         description: initialData.description || '',
         preview_image_url: initialData.preview_image_url || '',
+        model_3d_url: initialData.model_3d_url || '',
         primary_color: initialData.color_palette?.primary || '#6366f1',
         secondary_color: initialData.color_palette?.secondary || '#818cf8',
         accent_color: initialData.color_palette?.accent || '#a5b4fc',
@@ -90,7 +92,7 @@ function formDefaults(initialData) {
         sort_order: initialData.sort_order || 1,
       }
     : {
-        name: '', description: '', preview_image_url: '',
+        name: '', description: '', preview_image_url: '', model_3d_url: '',
         primary_color: '#6366f1', secondary_color: '#818cf8',
         accent_color: '#a5b4fc', background_color: '#ffffff', text_color: '#1e293b',
         heading_font: 'Playfair Display', body_font: 'Lato',
@@ -120,6 +122,7 @@ function ColorField({ label, register, name }) {
 function ThemeFormModal({ isOpen, onClose, initialData, onSave }) {
   const isEditing = !!initialData?.id;
   const [uploading, setUploading] = useState(false);
+  const [modelUploading, setModelUploading] = useState(false);
 
   const { register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(themeSchema),
@@ -136,6 +139,7 @@ function ThemeFormModal({ isOpen, onClose, initialData, onSave }) {
   }, [isOpen, initialData, reset]);
 
   const previewUrl = watch('preview_image_url');
+  const modelUrl = watch('model_3d_url');
 
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
@@ -155,11 +159,35 @@ function ThemeFormModal({ isOpen, onClose, initialData, onSave }) {
     }
   };
 
+  const handleModelFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!/\.(glb|gltf)$/i.test(file.name)) {
+      toast.error('Only .glb or .gltf files are allowed');
+      e.target.value = '';
+      return;
+    }
+    setModelUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('model', file);
+      const { data } = await adminApi.uploadThemeModel(fd);
+      setValue('model_3d_url', data.data.url, { shouldValidate: true });
+      toast.success('3D model uploaded');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Upload failed');
+    } finally {
+      setModelUploading(false);
+      e.target.value = '';
+    }
+  };
+
   const onSubmit = async (values) => {
     const payload = {
       name: values.name,
       description: values.description,
       preview_image_url: values.preview_image_url,
+      model_3d_url: values.model_3d_url,
       color_palette: {
         primary: values.primary_color,
         secondary: values.secondary_color,
@@ -214,6 +242,20 @@ function ThemeFormModal({ isOpen, onClose, initialData, onSave }) {
             </label>
           </div>
           {errors.preview_image_url && <p className="text-xs text-red-500 mt-1">{errors.preview_image_url.message}</p>}
+        </div>
+
+        <div>
+          <label className="text-sm font-medium text-slate-700">3D Model <span className="text-slate-400 font-normal">(optional — rotates in the hero of the couple's website)</span></label>
+          <div className="mt-1 flex items-center gap-3">
+            <input {...register('model_3d_url')} className="admin-input flex-1" placeholder="https://… (a .glb or .gltf file)" />
+            <label className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${modelUploading ? 'opacity-60 pointer-events-none' : 'border-slate-300 text-slate-600 hover:bg-slate-50'}`}>
+              {modelUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+              {modelUploading ? 'Uploading…' : 'Upload .glb'}
+              <input type="file" accept=".glb,.gltf" className="hidden" onChange={handleModelFileSelect} disabled={modelUploading} />
+            </label>
+          </div>
+          {modelUrl && <p className="text-xs text-emerald-600 mt-1 truncate">✓ {modelUrl}</p>}
+          {errors.model_3d_url && <p className="text-xs text-red-500 mt-1">{errors.model_3d_url.message}</p>}
         </div>
 
         <div>

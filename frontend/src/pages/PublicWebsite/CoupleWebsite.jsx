@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import { useParams } from 'react-router-dom';
 import { publicApi, guestbookApi } from '../../services/api';
 import { Heart, MapPin, Clock, Gift, Map, Camera, BookOpen, ChevronDown, ChevronLeft, ChevronRight, X, Loader2 } from 'lucide-react';
@@ -6,6 +6,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, differenceInDays, differenceInHours, differenceInMinutes, differenceInSeconds } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
+
+// The three.js stack is heavy (~600kB) - only pay for it on websites whose
+// theme actually has a 3D model, not on every couple's page load.
+const Hero3DModel = lazy(() => import('../../components/public/Hero3DModel'));
 
 // Ambient floating hearts, themed off the couple's own colors - fixed to the
 // viewport (not the page's scroll height) so it reads as one continuous
@@ -237,6 +241,15 @@ export default function CoupleWebsite() {
       {/* Hero Banner */}
       <section className="min-h-screen flex items-center justify-center relative pt-14" style={{ background: `linear-gradient(135deg, ${colors.primary || '#f43f5e'}15, ${colors.secondary || '#eab308'}10)` }}>
         {couple.cover_photo_url && <img src={couple.cover_photo_url} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30" />}
+        {couple.theme?.model_3d_url && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="pointer-events-auto w-[280px] h-[280px] md:w-[420px] md:h-[420px]">
+              <Suspense fallback={null}>
+                <Hero3DModel url={couple.theme.model_3d_url} />
+              </Suspense>
+            </div>
+          </div>
+        )}
         <div className="relative text-center px-4 py-20">
           <p className="text-sm uppercase tracking-[0.3em] text-gray-500 mb-6">We're Getting Married</p>
           <h1 className="text-5xl md:text-8xl font-bold leading-tight" style={{ fontFamily: fonts.heading || 'Playfair Display', color: colors.text || '#1f2937' }}>

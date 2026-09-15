@@ -53,6 +53,11 @@ const Theme = sequelize.define(
       },
       get: parseJsonField('font_pair'),
     },
+    model_3d_url: {
+      // Optional .glb/.gltf model shown rotating in the public website's hero.
+      type: DataTypes.STRING(1000),
+      allowNull: true,
+    },
     is_premium: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

@@ -96,6 +96,9 @@ export const adminApi = {
   uploadThemeImage: (formData) =>
     api.post('/themes/upload-image', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
 
+  uploadThemeModel: (formData) =>
+    api.post('/themes/upload-model', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+
   // ── Card Templates ────────────────────────────────────────────────────────
   getCardTemplates: () =>
     api.get('/admin/card-templates'),

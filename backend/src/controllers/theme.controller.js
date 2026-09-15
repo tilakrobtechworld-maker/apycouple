@@ -22,6 +22,22 @@ const uploadImage = async (req, res) => {
 };
 
 /**
+ * POST /api/themes/upload-model (admin)
+ * Accepts a .glb/.gltf 3D model file (multer field "model") and returns its
+ * hosted URL for the admin form to use as model_3d_url.
+ */
+const uploadModel = async (req, res) => {
+  try {
+    if (!req.file) return error(res, 'No model file provided.', 400);
+    const url = getFileUrl(req, req.file);
+    return success(res, { url }, 'Model uploaded.');
+  } catch (err) {
+    console.error('uploadModel theme error:', err);
+    error(res, 'Failed to upload model.', 500);
+  }
+};
+
+/**
  * GET /api/themes
  * Public: Get all active themes.
  */
@@ -57,12 +73,12 @@ const getAllAdmin = async (req, res) => {
  */
 const create = async (req, res) => {
   try {
-    const { name, description, preview_image_url, color_palette, font_pair, is_premium, sort_order } = req.body;
+    const { name, description, preview_image_url, model_3d_url, color_palette, font_pair, is_premium, sort_order } = req.body;
     if (!name) return error(res, 'name is required.', 400);
 
     const slug = slugify(name) + '-' + Date.now();
     const theme = await Theme.create({
-      name, slug, description, preview_image_url,
+      name, slug, description, preview_image_url, model_3d_url,
       color_palette: color_palette || {},
       font_pair: font_pair || {},
       is_premium: is_premium || false,
@@ -83,11 +99,12 @@ const update = async (req, res) => {
     const theme = await Theme.findByPk(req.params.id);
     if (!theme) return error(res, 'Theme not found.', 404);
 
-    const { name, description, preview_image_url, color_palette, font_pair, is_premium, sort_order } = req.body;
+    const { name, description, preview_image_url, model_3d_url, color_palette, font_pair, is_premium, sort_order } = req.body;
     await theme.update({
       name: name ?? theme.name,
       description: description ?? theme.description,
       preview_image_url: preview_image_url ?? theme.preview_image_url,
+      model_3d_url: model_3d_url ?? theme.model_3d_url,
       color_palette: color_palette ?? theme.color_palette,
       font_pair: font_pair ?? theme.font_pair,
       is_premium: is_premium ?? theme.is_premium,
@@ -130,5 +147,5 @@ const toggleActive = async (req, res) => {
   }
 };
 
-module.exports = { getAll, getAllAdmin, create, update, deleteTheme, remove: deleteTheme, toggleActive, uploadImage };
+module.exports = { getAll, getAllAdmin, create, update, deleteTheme, remove: deleteTheme, toggleActive, uploadImage, uploadModel };
 
