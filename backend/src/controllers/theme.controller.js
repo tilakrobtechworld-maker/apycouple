@@ -3,6 +3,23 @@
 const { Theme } = require('../models');
 const { success, error } = require('../utils/apiResponse');
 const { slugify } = require('../utils/generateSlug');
+const { getFileUrl } = require('../utils/getFileUrl');
+
+/**
+ * POST /api/themes/upload-image (admin)
+ * Accepts a preview image file (multer field "photo") and returns its
+ * hosted URL for the admin form to use as preview_image_url.
+ */
+const uploadImage = async (req, res) => {
+  try {
+    if (!req.file) return error(res, 'No image file provided.', 400);
+    const url = getFileUrl(req, req.file);
+    return success(res, { url }, 'Image uploaded.');
+  } catch (err) {
+    console.error('uploadImage theme error:', err);
+    error(res, 'Failed to upload image.', 500);
+  }
+};
 
 /**
  * GET /api/themes
@@ -113,5 +130,5 @@ const toggleActive = async (req, res) => {
   }
 };
 
-module.exports = { getAll, getAllAdmin, create, update, deleteTheme, remove: deleteTheme, toggleActive };
+module.exports = { getAll, getAllAdmin, create, update, deleteTheme, remove: deleteTheme, toggleActive, uploadImage };
 

@@ -110,7 +110,16 @@ export default function WebsiteEditor() {
                   {themes.length === 0 ? (
                     <p className="col-span-2 text-sm text-gray-400 text-center py-4">No themes available yet</p>
                   ) : themes.map(t => (
-                    <div key={t.id} onClick={() => !t.is_premium && setSelectedTheme(t.id)} className={`border-2 rounded-xl overflow-hidden cursor-pointer transition-all ${selectedTheme === t.id ? 'border-primary-500 shadow-md' : 'border-gray-100 hover:border-gray-300'} ${t.is_premium ? 'opacity-75' : ''}`}>
+                    <div
+                      key={t.id}
+                      onClick={() => {
+                        if (t.is_premium) return;
+                        setSelectedTheme(t.id);
+                        if (t.color_palette) setColors((c) => ({ ...c, ...t.color_palette }));
+                        if (t.font_pair) setFonts((f) => ({ ...f, ...t.font_pair }));
+                      }}
+                      className={`border-2 rounded-xl overflow-hidden cursor-pointer transition-all ${selectedTheme === t.id ? 'border-primary-500 shadow-md' : 'border-gray-100 hover:border-gray-300'} ${t.is_premium ? 'opacity-75' : ''}`}
+                    >
                       <div className="aspect-video bg-gradient-to-br from-rose-100 to-gold-100 flex items-center justify-center relative">
                         {t.preview_image_url ? <img src={t.preview_image_url} alt={t.name} className="w-full h-full object-cover" /> : <Palette className="w-6 h-6 text-gray-400" />}
                         {t.is_premium && <div className="absolute inset-0 bg-black/30 flex items-center justify-center"><Lock className="w-5 h-5 text-white" /></div>}

@@ -82,16 +82,19 @@ export const adminApi = {
     api.get('/admin/themes'),
 
   createTheme: (data) =>
-    api.post('/admin/themes', data),
+    api.post('/themes', data),
 
   updateTheme: (id, data) =>
-    api.put(`/admin/themes/${id}`, data),
+    api.put(`/themes/${id}`, data),
 
   deleteTheme: (id) =>
-    api.delete(`/admin/themes/${id}`),
+    api.delete(`/themes/${id}`),
 
   toggleThemeActive: (id) =>
-    api.patch(`/admin/themes/${id}/toggle`),
+    api.put(`/themes/${id}/toggle`),
+
+  uploadThemeImage: (formData) =>
+    api.post('/themes/upload-image', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
 
   // ── Card Templates ────────────────────────────────────────────────────────
   getCardTemplates: () =>
