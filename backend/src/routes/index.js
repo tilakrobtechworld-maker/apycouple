@@ -16,6 +16,7 @@ const adminRoutes = require('./admin.routes');
 const publicRoutes = require('./public.routes');
 const cardTemplateRoutes = require('./cardTemplate.routes');
 const cardRoutes = require('./card.routes');
+const sceneTemplateRoutes = require('./sceneTemplate.routes');
 
 router.use('/auth', authRoutes);
 router.use('/couple', coupleRoutes);
@@ -32,6 +33,7 @@ router.use('/admin', adminRoutes);
 router.use('/public', publicRoutes);
 router.use('/card-templates', cardTemplateRoutes);
 router.use('/cards', cardRoutes);
+router.use('/scene-templates', sceneTemplateRoutes);
 
 module.exports = router;
 

@@ -3,6 +3,7 @@ const router = express.Router();
 const adminController = require('../controllers/admin.controller');
 const themeController = require('../controllers/theme.controller');
 const cardTemplateController = require('../controllers/cardTemplate.controller');
+const sceneTemplateController = require('../controllers/sceneTemplate.controller');
 const { protect } = require('../middlewares/auth');
 const { requireAdmin } = require('../middlewares/adminAuth');
 
@@ -21,6 +22,7 @@ router.delete('/media/:id', adminController.rejectMedia);
 router.post('/broadcast', adminController.broadcastNotification);
 router.get('/themes', themeController.getAllAdmin);
 router.get('/card-templates', cardTemplateController.getAllAdmin);
+router.get('/scene-templates', sceneTemplateController.getAllAdmin);
 
 module.exports = router;
 

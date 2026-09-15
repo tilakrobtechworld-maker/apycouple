@@ -19,6 +19,7 @@ const TravelInfo = require('./TravelInfo');
 const Notification = require('./Notification');
 const CardTemplate = require('./CardTemplate');
 const WeddingCard = require('./WeddingCard');
+const SceneTemplate = require('./SceneTemplate');
 
 // ─── Associations ─────────────────────────────────────────────────────────────
 
@@ -145,4 +146,5 @@ module.exports = {
   Notification,
   CardTemplate,
   WeddingCard,
+  SceneTemplate,
 };
