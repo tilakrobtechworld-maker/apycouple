@@ -66,16 +66,16 @@ export const adminApi = {
     api.get(`/admin/couples/${id}`),
 
   suspendCouple: (id) =>
-    api.patch(`/admin/couples/${id}/suspend`),
+    api.put(`/admin/couples/${id}/suspend`),
 
   activateCouple: (id) =>
-    api.patch(`/admin/couples/${id}/activate`),
+    api.put(`/admin/couples/${id}/activate`),
 
   deleteCouple: (id) =>
     api.delete(`/admin/couples/${id}`),
 
   updateSubscription: (id, tier) =>
-    api.patch(`/admin/couples/${id}/subscription`, { tier }),
+    api.put(`/admin/couples/${id}/subscription`, { subscription_tier: tier }),
 
   // ── Themes ────────────────────────────────────────────────────────────────
   getThemes: () =>

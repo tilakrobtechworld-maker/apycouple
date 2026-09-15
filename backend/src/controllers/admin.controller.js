@@ -2,7 +2,7 @@
 
 const { Op } = require('sequelize');
 const {
-  User, CoupleProfile, Guest, Event, RsvpSubmission, MediaGallery, Theme, Notification,
+  sequelize, User, CoupleProfile, Guest, Event, RsvpSubmission, MediaGallery, Theme, Notification,
 } = require('../models');
 const { success, error, paginated } = require('../utils/apiResponse');
 const emailService = require('../services/email.service');
@@ -68,6 +68,14 @@ const getCouples = async (req, res) => {
 
     const { count, rows } = await CoupleProfile.findAndCountAll({
       where: profileWhere,
+      attributes: {
+        include: [
+          [
+            sequelize.literal('(SELECT COUNT(*) FROM guests WHERE guests.couple_id = couple_profiles.id)'),
+            'guest_count',
+          ],
+        ],
+      },
       include: [
         {
           model: User,
@@ -278,7 +286,7 @@ const updateSubscription = async (req, res) => {
     const { subscription_tier } = req.body;
     if (!subscription_tier) return error(res, 'subscription_tier is required.', 400);
 
-    const user = await User.findByPk(req.params.userId);
+    const user = await User.findByPk(req.params.id);
     if (!user) return error(res, 'User not found.', 404);
 
     await user.update({ subscription_tier });

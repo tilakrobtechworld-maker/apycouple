@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, Filter, Eye, Trash2, ShieldOff, ShieldCheck,
-  Download, ChevronDown,
+  Download,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -12,44 +12,22 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 
-// ─── Mock Data ─────────────────────────────────────────────────────────────────
-const generateMockCouples = () =>
-  Array.from({ length: 47 }, (_, i) => ({
-    id: i + 1,
-    partnerOneName: ['Aarav', 'Rahul', 'Vijay', 'Arun', 'Dev', 'Kiran', 'Rohit', 'Sanjay'][i % 8],
-    partnerTwoName: ['Priya', 'Shruti', 'Meera', 'Kavitha', 'Nithya', 'Deepa', 'Ananya', 'Pooja'][i % 8],
-    email: `couple${i + 1}@mail.com`,
-    weddingDate: `2026-${String(((i % 12) + 1)).padStart(2, '0')}-${String(((i % 28) + 1)).padStart(2, '0')}`,
-    subscriptionTier: ['free', 'premium', 'elite'][i % 3],
-    websiteStatus: i % 3 === 0 ? 'draft' : 'published',
-    guestCount: 50 + (i * 13) % 300,
-    status: i % 7 === 0 ? 'suspended' : 'active',
-    createdAt: `2026-0${Math.floor(i / 6) + 1 > 9 ? '' : '0'}${Math.min(Math.floor(i / 6) + 1, 9)}-10`,
-  }));
-
-const ALL_COUPLES = generateMockCouples();
-
 const PLAN_BADGE = {
   free:    { variant: 'gray',   label: 'Free' },
   premium: { variant: 'info',   label: 'Premium' },
   elite:   { variant: 'gold',   label: 'Elite' },
 };
 
-const STATUS_BADGE = {
-  active:    { variant: 'success', label: 'Active' },
-  suspended: { variant: 'danger',  label: 'Suspended' },
-};
-
 // ─── CSV Export ────────────────────────────────────────────────────────────────
 function exportCSV(data) {
   const headers = ['Name', 'Email', 'Plan', 'Wedding Date', 'Guests', 'Status'];
   const rows = data.map((c) => [
-    `${c.partnerOneName} & ${c.partnerTwoName}`,
-    c.email,
-    c.subscriptionTier,
-    c.weddingDate,
-    c.guestCount,
-    c.status,
+    `${c.bride_name} & ${c.groom_name}`,
+    c.user?.email || '',
+    c.user?.subscription_tier || '',
+    c.wedding_date || '',
+    c.guest_count ?? 0,
+    c.user?.is_active ? 'active' : 'suspended',
   ]);
   const csv = [headers, ...rows].map((r) => r.join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
@@ -65,11 +43,11 @@ function exportCSV(data) {
 export default function CouplesPage() {
   const navigate = useNavigate();
 
-  // State
   const [search, setSearch] = useState('');
   const [tierFilter, setTierFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [couples, setCouples] = useState([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState(new Set());
@@ -78,34 +56,28 @@ export default function CouplesPage() {
 
   const PAGE_SIZE = 10;
 
-  // Filter + paginate locally (fallback from mock)
-  const filtered = ALL_COUPLES.filter((c) => {
-    const name = `${c.partnerOneName} ${c.partnerTwoName}`.toLowerCase();
-    const matchSearch = !search || name.includes(search.toLowerCase()) || c.email.includes(search.toLowerCase());
-    const matchTier = tierFilter === 'all' || c.subscriptionTier === tierFilter;
-    const matchStatus = statusFilter === 'all' || c.status === statusFilter;
-    return matchSearch && matchTier && matchStatus;
-  });
-
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const { data: body } = await adminApi.getCouples({ page, limit: PAGE_SIZE, search, tier: tierFilter, status: statusFilter });
-        setCouples(body.data || []);
-      } catch {
-        setCouples(paginated);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const load = async () => {
     setLoading(true);
-    load();
-  }, [page, search, tierFilter, statusFilter]);
+    try {
+      const { data: body } = await adminApi.getCouples({
+        page,
+        limit: PAGE_SIZE,
+        search: search || undefined,
+        subscription_tier: tierFilter === 'all' ? undefined : tierFilter,
+        is_active: statusFilter === 'all' ? undefined : String(statusFilter === 'active'),
+      });
+      setCouples(body.data || []);
+      setTotal(body.pagination?.total ?? (body.data || []).length);
+    } catch {
+      toast.error('Failed to load couples');
+      setCouples([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Show paginated mock when not loading
-  const displayData = loading ? [] : (couples.length ? couples : paginated);
+  useEffect(() => { load(); }, [page, search, tierFilter, statusFilter]);
 
   // Actions
   const handleSuspend = async (id) => {
@@ -113,8 +85,9 @@ export default function CouplesPage() {
     try {
       await adminApi.suspendCouple(id);
       toast.success('Couple suspended');
+      load();
     } catch {
-      toast.success('Couple suspended'); // mock success
+      toast.error('Failed to suspend couple');
     } finally {
       setActionLoading(false);
       setConfirmAction(null);
@@ -125,8 +98,9 @@ export default function CouplesPage() {
     try {
       await adminApi.activateCouple(id);
       toast.success('Couple activated');
+      load();
     } catch {
-      toast.success('Couple activated');
+      toast.error('Failed to activate couple');
     }
   };
 
@@ -135,31 +109,47 @@ export default function CouplesPage() {
     try {
       await adminApi.deleteCouple(id);
       toast.success('Couple deleted');
+      load();
     } catch {
-      toast.success('Couple deleted');
+      toast.error('Failed to delete couple');
     } finally {
       setActionLoading(false);
       setConfirmAction(null);
     }
   };
 
-  // Bulk actions
   const handleBulkAction = async (action) => {
     const ids = Array.from(selected);
     if (ids.length === 0) return toast.error('No couples selected');
+    if (action === 'delete') {
+      setConfirmAction({ type: 'bulk-delete', ids });
+      return;
+    }
     try {
-      if (action === 'delete') {
-        setConfirmAction({ type: 'bulk-delete', ids });
-      } else {
-        for (const id of ids) {
-          action === 'suspend' ? await adminApi.suspendCouple(id) : await adminApi.activateCouple(id);
-        }
-        toast.success(`${ids.length} couples ${action}d`);
-        setSelected(new Set());
+      for (const id of ids) {
+        action === 'suspend' ? await adminApi.suspendCouple(id) : await adminApi.activateCouple(id);
       }
-    } catch {
       toast.success(`${ids.length} couples ${action}d`);
       setSelected(new Set());
+      load();
+    } catch {
+      toast.error(`Failed to ${action} some couples`);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = confirmAction?.ids || [];
+    setActionLoading(true);
+    try {
+      for (const id of ids) await adminApi.deleteCouple(id);
+      toast.success(`${ids.length} couples deleted`);
+      setSelected(new Set());
+      load();
+    } catch {
+      toast.error('Failed to delete some couples');
+    } finally {
+      setActionLoading(false);
+      setConfirmAction(null);
     }
   };
 
@@ -171,10 +161,10 @@ export default function CouplesPage() {
   });
 
   const handleSelectAll = () => {
-    if (displayData.every((r) => selected.has(String(r.id)))) {
+    if (couples.every((r) => selected.has(r.id))) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(displayData.map((r) => String(r.id))));
+      setSelected(new Set(couples.map((r) => r.id)));
     }
   };
 
@@ -183,50 +173,49 @@ export default function CouplesPage() {
     {
       key: 'name',
       label: 'Couple',
-      sortable: true,
       render: (_, row) => (
         <span className="font-medium text-slate-900">
-          {row.partnerOneName} & {row.partnerTwoName}
+          {row.couple_display_name || `${row.bride_name} & ${row.groom_name}`}
         </span>
       ),
     },
-    { key: 'email', label: 'Email', sortable: true },
+    { key: 'email', label: 'Email', render: (_, row) => row.user?.email || '—' },
     {
-      key: 'weddingDate',
+      key: 'wedding_date',
       label: 'Wedding Date',
-      sortable: true,
-      render: (v) => v || '—',
+      render: (v) => (v ? format(new Date(v), 'MMM d, yyyy') : '—'),
     },
     {
-      key: 'subscriptionTier',
+      key: 'plan',
       label: 'Plan',
-      render: (v) => {
-        const b = PLAN_BADGE[v] || PLAN_BADGE.free;
+      render: (_, row) => {
+        const tier = row.user?.subscription_tier || 'free';
+        const b = PLAN_BADGE[tier] || PLAN_BADGE.free;
         return <Badge variant={b.variant}>{b.label}</Badge>;
       },
     },
     {
-      key: 'websiteStatus',
+      key: 'website_published',
       label: 'Website',
       render: (v) => (
-        <Badge variant={v === 'published' ? 'success' : 'gray'}>
-          {v === 'published' ? 'Published' : 'Draft'}
+        <Badge variant={v ? 'success' : 'gray'}>
+          {v ? 'Published' : 'Draft'}
         </Badge>
       ),
     },
     {
-      key: 'guestCount',
+      key: 'guest_count',
       label: 'Guests',
-      sortable: true,
-      render: (v) => <span className="tabular-nums">{v?.toLocaleString() ?? '—'}</span>,
+      render: (v) => <span className="tabular-nums">{(v ?? 0).toLocaleString()}</span>,
     },
     {
       key: 'status',
       label: 'Status',
-      render: (v) => {
-        const b = STATUS_BADGE[v] || STATUS_BADGE.active;
-        return <Badge variant={b.variant} dot>{b.label}</Badge>;
-      },
+      render: (_, row) => (
+        <Badge variant={row.user?.is_active ? 'success' : 'danger'} dot>
+          {row.user?.is_active ? 'Active' : 'Suspended'}
+        </Badge>
+      ),
     },
     {
       key: 'actions',
@@ -240,7 +229,7 @@ export default function CouplesPage() {
           >
             <Eye size={15} />
           </button>
-          {row.status === 'active' ? (
+          {row.user?.is_active ? (
             <button
               onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: 'suspend', id: row.id }); }}
               className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
@@ -275,13 +264,13 @@ export default function CouplesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Couples Management</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{filtered.length} couples registered</p>
+          <p className="text-sm text-slate-500 mt-0.5">{total} couples registered</p>
         </div>
         <Button
           variant="secondary"
           size="sm"
           icon={<Download size={15} />}
-          onClick={() => exportCSV(filtered)}
+          onClick={() => exportCSV(couples)}
         >
           Export CSV
         </Button>
@@ -295,7 +284,7 @@ export default function CouplesPage() {
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Search by name or email…"
+              placeholder="Search by name or slug…"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               className="admin-input pl-9"
@@ -351,7 +340,7 @@ export default function CouplesPage() {
       {/* Table */}
       <DataTable
         columns={columns}
-        data={displayData}
+        data={couples}
         loading={loading}
         selectable
         selected={selected}
@@ -362,7 +351,7 @@ export default function CouplesPage() {
         pagination={{
           page,
           pageSize: PAGE_SIZE,
-          total: filtered.length,
+          total,
           onPageChange: setPage,
         }}
         emptyText="No couples found matching your filters."
@@ -385,6 +374,16 @@ export default function CouplesPage() {
         onConfirm={() => handleDelete(confirmAction?.id)}
         title="Delete Couple"
         description="This will permanently delete the couple and all their data including guests, RSVPs, and media. This cannot be undone."
+        confirmLabel="Delete Permanently"
+        dangerous
+        loading={actionLoading}
+      />
+      <ConfirmDialog
+        isOpen={confirmAction?.type === 'bulk-delete'}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={handleBulkDelete}
+        title={`Delete ${confirmAction?.ids?.length || 0} Couples`}
+        description="This will permanently delete these couples and all their data including guests, RSVPs, and media. This cannot be undone."
         confirmLabel="Delete Permanently"
         dangerous
         loading={actionLoading}
