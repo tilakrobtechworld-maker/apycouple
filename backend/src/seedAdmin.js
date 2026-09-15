@@ -9,7 +9,7 @@ require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const { sequelize, User } = require('./models');
 
-const ADMIN_EMAIL = 'admin@appycouple.com';
+const ADMIN_EMAIL = 'admin@savethedate.com';
 const ADMIN_PASSWORD = 'Admin@123';
 
 async function seed() {

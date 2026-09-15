@@ -1,7 +1,7 @@
 {
-  "name": "appycouple-clone",
+  "name": "savethedate",
   "version": "1.0.0",
-  "description": "Full-stack Appy Couple wedding platform clone",
+  "description": "Full-stack SaveTheDate wedding platform",
   "private": true,
   "scripts": {
     "install:all": "npm install && npm install --prefix backend --legacy-peer-deps && npm install --prefix frontend --legacy-peer-deps && npm install --prefix admin --legacy-peer-deps",

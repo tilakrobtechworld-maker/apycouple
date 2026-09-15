@@ -106,8 +106,8 @@ export default function SettingsPage() {
               <div>
                 <label className="label">Website URL Slug</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">appycouple.com/w/</span>
-                  <input {...detailsForm.register('custom_slug')} placeholder="priya-and-rahul" className="input-field pl-32" />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">savethedate.com/w/</span>
+                  <input {...detailsForm.register('custom_slug')} placeholder="priya-and-rahul" className="input-field pl-36" />
                 </div>
                 <p className="text-xs text-gray-400 mt-1">Use lowercase letters, numbers, and hyphens only</p>
               </div>

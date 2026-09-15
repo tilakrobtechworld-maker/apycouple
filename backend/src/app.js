@@ -129,7 +129,7 @@ const startServer = async () => {
     console.log(alter ? '✅ All models synced (schema altered).' : '✅ All models synced (no schema changes, skipped alter).');
 
     server.listen(PORT, () => {
-      console.log(`🚀 AppyCouple server running on port ${PORT} [${process.env.NODE_ENV}]`);
+      console.log(`🚀 SaveTheDate server running on port ${PORT} [${process.env.NODE_ENV}]`);
     });
   } catch (err) {
     console.error('❌ Unable to connect to the database:', err);

@@ -38,7 +38,7 @@ export default function DashboardLayout() {
       <div className="p-6 border-b border-gray-100">
         <div className="flex items-center gap-2">
           <Heart className="w-6 h-6 text-primary-500 fill-primary-500" />
-          <span className="text-lg font-serif font-bold text-gray-900">AppyCouple</span>
+          <span className="text-lg font-serif font-bold text-gray-900">SaveTheDate</span>
         </div>
         {coupleProfile && (
           <div className="mt-4 bg-primary-50 rounded-xl p-3">
@@ -49,7 +49,7 @@ export default function DashboardLayout() {
               </p>
             )}
             <p className="text-xs text-gray-400 mt-1">
-              {coupleProfile.custom_slug ? `appycouple.com/w/${coupleProfile.custom_slug}` : 'No website yet'}
+              {coupleProfile.custom_slug ? `savethedate.com/w/${coupleProfile.custom_slug}` : 'No website yet'}
             </p>
           </div>
         )}

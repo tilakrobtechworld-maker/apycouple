@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // VITE_API_BASE_URL may be a full URL ("http://localhost:5000/api") or a bare
 // host (Render's cross-service env vars only provide the hostname, e.g.
-// "appycouple-backend.onrender.com") - normalize either form to a full URL.
+// "savethedate-backend.onrender.com") - normalize either form to a full URL.
 function resolveApiBaseUrl() {
   const raw = import.meta.env.VITE_API_BASE_URL;
   if (!raw) return '/api';

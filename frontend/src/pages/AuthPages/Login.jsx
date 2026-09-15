@@ -34,7 +34,7 @@ export default function Login() {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-6">
             <Heart className="w-7 h-7 text-primary-500 fill-primary-500" />
-            <span className="text-2xl font-serif font-bold text-gray-900">AppyCouple</span>
+            <span className="text-2xl font-serif font-bold text-gray-900">SaveTheDate</span>
           </Link>
           <h1 className="text-3xl font-serif font-bold text-gray-900">Welcome Back</h1>
           <p className="text-gray-500 mt-2">Sign in to continue planning your perfect wedding</p>

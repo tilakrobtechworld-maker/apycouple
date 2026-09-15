@@ -53,7 +53,7 @@ export default function AdminSidebar({ isOpen, onClose }) {
               <Shield size={16} className="text-white" />
             </div>
             <div>
-              <span className="text-white font-bold text-sm leading-tight block">AppyCouple</span>
+              <span className="text-white font-bold text-sm leading-tight block">SaveTheDate</span>
               <span className="text-indigo-400 text-[10px] font-medium uppercase tracking-wider">Admin Panel</span>
             </div>
           </div>

@@ -1,7 +1,7 @@
 {
-  "name": "appycouple-backend",
+  "name": "savethedate-backend",
   "version": "1.0.0",
-  "description": "Appy Couple Wedding Platform - Backend API",
+  "description": "SaveTheDate Wedding Platform - Backend API",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
@@ -39,10 +39,10 @@
   "keywords": [
     "wedding",
     "rsvp",
-    "appy-couple",
+    "savethedate",
     "express",
     "mysql"
   ],
-  "author": "AppyCouple Dev Team",
+  "author": "SaveTheDate Dev Team",
   "license": "MIT"
 }

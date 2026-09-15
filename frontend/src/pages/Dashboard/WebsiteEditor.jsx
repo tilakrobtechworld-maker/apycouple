@@ -185,7 +185,7 @@ export default function WebsiteEditor() {
             <div className="bg-gray-50 border-b border-gray-100 px-4 py-3 flex items-center gap-2">
               <div className="flex gap-1.5"><div className="w-3 h-3 rounded-full bg-red-400" /><div className="w-3 h-3 rounded-full bg-yellow-400" /><div className="w-3 h-3 rounded-full bg-green-400" /></div>
               <div className="flex-1 bg-white rounded-full px-4 py-1 text-xs text-gray-400 text-center font-mono">
-                {websiteUrl || 'appycouple.com/w/your-slug'}
+                {websiteUrl || 'savethedate.com/w/your-slug'}
               </div>
             </div>
             <div className="p-0 overflow-hidden" style={{ height: '500px' }}>

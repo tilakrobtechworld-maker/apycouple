@@ -420,7 +420,7 @@ export default function CoupleWebsite() {
         <Heart className="w-6 h-6 mx-auto mb-3 fill-current" style={{ color: colors.primary || '#f43f5e' }} />
         <p className="font-serif text-xl text-gray-700">{couple.bride_name} & {couple.groom_name}</p>
         {couple.wedding_date && <p className="text-gray-400 text-sm mt-1">{format(new Date(couple.wedding_date), 'MMMM d, yyyy')}</p>}
-        <p className="text-xs text-gray-300 mt-4">Made with ❤️ on AppyCouple</p>
+        <p className="text-xs text-gray-300 mt-4">Made with ❤️ on SaveTheDate</p>
       </footer>
 
       <AnimatePresence>

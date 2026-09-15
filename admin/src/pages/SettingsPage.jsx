@@ -60,7 +60,7 @@ export default function SettingsPage() {
   const [showPwd, setShowPwd] = useState({});
   const [saving, setSaving] = useState(false);
 
-  const emailForm = useForm({ defaultValues: { smtp_host: 'smtp.gmail.com', smtp_port: '587', smtp_user: '', smtp_pass: '', smtp_from: 'noreply@appycouple.com' } });
+  const emailForm = useForm({ defaultValues: { smtp_host: 'smtp.gmail.com', smtp_port: '587', smtp_user: '', smtp_pass: '', smtp_from: 'noreply@savethedate.com' } });
   const smsForm = useForm({ defaultValues: { twilio_sid: '', twilio_token: '', twilio_phone: '' } });
   const mediaForm = useForm({ defaultValues: { cloudinary_cloud: '', cloudinary_key: '', cloudinary_secret: '', max_upload_mb: '10' } });
 
@@ -117,7 +117,7 @@ export default function SettingsPage() {
               </div>
               <InputRow label="Username / Email" name="smtp_user" form={emailForm} placeholder="your@gmail.com" />
               <InputRow label="Password / App Password" name="smtp_pass" form={emailForm} type="password" placeholder="••••••••" />
-              <InputRow label="From Address" name="smtp_from" form={emailForm} placeholder="noreply@appycouple.com" />
+              <InputRow label="From Address" name="smtp_from" form={emailForm} placeholder="noreply@savethedate.com" />
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => toast.success('Test email sent!')} className="px-4 py-2 border border-gray-300 rounded-xl text-sm hover:bg-gray-50">Test Email</button>
                 <button type="submit" disabled={saving} className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-sm font-medium hover:bg-indigo-700 flex items-center gap-2">
@@ -192,7 +192,7 @@ export default function SettingsPage() {
                   <tbody>
                     <tr className="border-b">
                       <td className="px-4 py-3 font-medium">Platform Admin</td>
-                      <td className="px-4 py-3 text-gray-500">admin@appycouple.com</td>
+                      <td className="px-4 py-3 text-gray-500">admin@savethedate.com</td>
                       <td className="px-4 py-3"><span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">superadmin</span></td>
                       <td className="px-4 py-3"><span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Active</span></td>
                     </tr>

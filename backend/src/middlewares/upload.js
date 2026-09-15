@@ -23,7 +23,7 @@ if (cloudinaryConfigured) {
     params: async (req, file) => {
       const isVideo = file.mimetype.startsWith('video/');
       return {
-        folder: 'appycouple/photos',
+        folder: 'savethedate/photos',
         resource_type: isVideo ? 'video' : 'image',
         allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi'],
         transformation: isVideo

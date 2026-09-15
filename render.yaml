@@ -1,5 +1,5 @@
 services:
-  - name: appycouple-backend
+  - name: savethedate-backend
     type: web
     runtime: node
     rootDir: backend
@@ -38,7 +38,7 @@ services:
         sync: false
       - key: REDIS_URL
         fromService:
-          name: appycouple-redis
+          name: savethedate-redis
           type: keyvalue
           property: connectionString
       - key: SMTP_HOST
@@ -50,7 +50,7 @@ services:
       - key: SMTP_PASS
         sync: false
       - key: SMTP_FROM
-        value: noreply@appycouple.com
+        value: noreply@savethedate.com
       - key: TWILIO_ACCOUNT_SID
         sync: false
       - key: TWILIO_AUTH_TOKEN
@@ -59,16 +59,16 @@ services:
         sync: false
       - key: FRONTEND_URL
         fromService:
-          name: appycouple-frontend
+          name: savethedate-frontend
           type: web
           property: host
       - key: ADMIN_URL
         fromService:
-          name: appycouple-admin
+          name: savethedate-admin
           type: web
           property: host
 
-  - name: appycouple-frontend
+  - name: savethedate-frontend
     type: web
     runtime: static
     rootDir: frontend
@@ -77,11 +77,11 @@ services:
     envVars:
       - key: VITE_API_BASE_URL
         fromService:
-          name: appycouple-backend
+          name: savethedate-backend
           type: web
           property: host
 
-  - name: appycouple-admin
+  - name: savethedate-admin
     type: web
     runtime: static
     rootDir: admin
@@ -90,11 +90,11 @@ services:
     envVars:
       - key: VITE_API_BASE_URL
         fromService:
-          name: appycouple-backend
+          name: savethedate-backend
           type: web
           property: host
 
-  - name: appycouple-redis
+  - name: savethedate-redis
     type: keyvalue
     plan: free
     ipAllowList: []

@@ -53,7 +53,7 @@ export default function AdminLogin() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl mb-4 shadow-lg shadow-indigo-900/40">
               <Shield size={28} className="text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-white mb-1">AppyCouple Admin</h1>
+            <h1 className="text-2xl font-bold text-white mb-1">SaveTheDate Admin</h1>
             <p className="text-slate-400 text-sm">Sign in to manage the platform</p>
           </div>
 
@@ -69,7 +69,7 @@ export default function AdminLogin() {
                 <input
                   type="email"
                   autoComplete="email"
-                  placeholder="admin@appycouple.com"
+                  placeholder="admin@savethedate.com"
                   {...register('email')}
                   className={[
                     'w-full pl-9 pr-4 py-2.5 rounded-xl text-sm',
@@ -156,7 +156,7 @@ export default function AdminLogin() {
         </div>
 
         <p className="mt-4 text-center text-xs text-slate-600">
-          AppyCouple Platform v1.0 — Admin Panel
+          SaveTheDate Platform v1.0 — Admin Panel
         </p>
       </div>
     </div>

@@ -18,7 +18,7 @@ const steps = [
 ];
 
 const testimonials = [
-  { name: 'Priya & Rahul', text: 'AppyCouple made our wedding planning so much easier! The live photo stream at our reception was a huge hit.', rating: 5 },
+  { name: 'Priya & Rahul', text: 'SaveTheDate made our wedding planning so much easier! The live photo stream at our reception was a huge hit.', rating: 5 },
   { name: 'Sneha & Arjun', text: 'We loved the custom RSVP forms. Managing 350 guests was a breeze with the guest list tools.', rating: 5 },
   { name: 'Meera & Vikram', text: 'The website editor is incredible. We had a gorgeous wedding site up in less than an hour!', rating: 5 },
 ];
@@ -39,7 +39,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           <div className="flex items-center gap-2">
             <Heart className="w-6 h-6 text-primary-500 fill-primary-500" />
-            <span className="text-xl font-serif font-bold text-gray-900">AppyCouple</span>
+            <span className="text-xl font-serif font-bold text-gray-900">SaveTheDate</span>
           </div>
           <div className="hidden md:flex items-center gap-6 text-sm text-gray-600">
             <a href="#features" className="hover:text-primary-500 transition-colors">Features</a>
@@ -90,7 +90,7 @@ export default function LandingPage() {
                 <div className="w-3 h-3 rounded-full bg-red-400" />
                 <div className="w-3 h-3 rounded-full bg-yellow-400" />
                 <div className="w-3 h-3 rounded-full bg-green-400" />
-                <div className="flex-1 bg-white rounded-full px-4 py-1 text-xs text-gray-400 text-center ml-2">appycouple.com/dashboard</div>
+                <div className="flex-1 bg-white rounded-full px-4 py-1 text-xs text-gray-400 text-center ml-2">savethedate.com/dashboard</div>
               </div>
               <div className="p-6 bg-gradient-to-br from-rose-50 to-white min-h-48 flex items-center justify-center">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-2xl">
@@ -212,7 +212,7 @@ export default function LandingPage() {
       <section className="py-24 bg-primary-500">
         <div className="max-w-3xl mx-auto px-4 text-center">
           <h2 className="text-4xl font-serif font-bold text-white">Start Planning Your Dream Wedding Today</h2>
-          <p className="mt-4 text-primary-100 text-lg">Join thousands of couples who've already used AppyCouple.</p>
+          <p className="mt-4 text-primary-100 text-lg">Join thousands of couples who've already used SaveTheDate.</p>
           <Link to="/register" className="mt-8 inline-block bg-white text-primary-500 font-bold px-10 py-3 rounded-full hover:bg-primary-50 transition-colors">
             Create Your Free Account
           </Link>
@@ -225,9 +225,9 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-2">
               <Heart className="w-5 h-5 text-primary-500 fill-primary-500" />
-              <span className="font-serif font-bold text-white text-lg">AppyCouple</span>
+              <span className="font-serif font-bold text-white text-lg">SaveTheDate</span>
             </div>
-            <p className="text-sm">© 2024 AppyCouple. Made with ❤️ for couples everywhere.</p>
+            <p className="text-sm">© 2024 SaveTheDate. Made with ❤️ for couples everywhere.</p>
             <div className="flex gap-6 text-sm">
               <a href="#" className="hover:text-white transition-colors">Privacy</a>
               <a href="#" className="hover:text-white transition-colors">Terms</a>

@@ -4,7 +4,7 @@ require('dotenv').config();
 const { Sequelize } = require('sequelize');
 
 const sequelize = new Sequelize(
-  process.env.DB_NAME || 'appycouple_db',
+  process.env.DB_NAME || 'savethedate_db',
   process.env.DB_USER || 'root',
   process.env.DB_PASSWORD || '',
   {

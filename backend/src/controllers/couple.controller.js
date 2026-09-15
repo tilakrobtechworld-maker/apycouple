@@ -109,7 +109,7 @@ const updateCoverPhoto = async (req, res) => {
     // Delete old cover photo from Cloudinary if present
     if (profile.cover_photo_url) {
       const oldPublicId = profile.cover_photo_url.split('/').slice(-1)[0].split('.')[0];
-      await cloudinary.uploader.destroy(`appycouple/photos/${oldPublicId}`).catch(() => null);
+      await cloudinary.uploader.destroy(`savethedate/photos/${oldPublicId}`).catch(() => null);
     }
 
     const cover_photo_url = getFileUrl(req, req.file);

@@ -22,7 +22,7 @@ const MOCK_COUPLE = {
   email: 'aarav.priya@mail.com',
   phone: '+91 98765 43210',
   weddingDate: '2026-12-15',
-  websiteUrl: 'https://aaravpriya.appycouple.in',
+  websiteUrl: 'https://aaravpriya.savethedate.in',
   websiteStatus: 'published',
   subscriptionTier: 'premium',
   status: 'active',

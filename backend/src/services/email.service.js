@@ -45,7 +45,7 @@ const wrapHtmlTemplate = (content, coupleDisplayName = 'Our Wedding', primaryCol
   <div class="container">
     ${content}
     <div class="footer">
-      <p>This email was sent by <strong>${coupleDisplayName}</strong> via AppyCouple.</p>
+      <p>This email was sent by <strong>${coupleDisplayName}</strong> via SaveTheDate.</p>
       <p>If you have any questions, please reply to this email.</p>
     </div>
   </div>
@@ -177,7 +177,7 @@ const sendBroadcast = async (recipients, subject, message, couple = null) => {
   const primaryColor = couple?.theme_config?.primary || '#B8860B';
   const coupleName = couple
     ? couple.couple_display_name || `${couple.bride_name} & ${couple.groom_name}`
-    : 'AppyCouple';
+    : 'SaveTheDate';
 
   const content = `
     <div class="header">
