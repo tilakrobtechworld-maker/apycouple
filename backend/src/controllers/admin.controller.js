@@ -71,7 +71,7 @@ const getCouples = async (req, res) => {
       attributes: {
         include: [
           [
-            sequelize.literal('(SELECT COUNT(*) FROM guests WHERE guests.couple_id = couple_profiles.id)'),
+            sequelize.literal('(SELECT COUNT(*) FROM guests WHERE guests.couple_id = `CoupleProfile`.`id`)'),
             'guest_count',
           ],
         ],
