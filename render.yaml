@@ -60,6 +60,11 @@ services:
       # Public URL of the backend (used for one-click email RSVP links)
       - key: API_URL
         sync: false
+      # Admin panel login (account is created on boot if missing) - choose your own values
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
       - key: GEMINI_API_KEY
         sync: false
       - key: UNSPLASH_ACCESS_KEY
