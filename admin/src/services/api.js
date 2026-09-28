@@ -6,7 +6,9 @@ import axios from 'axios';
 function resolveApiBaseUrl() {
   const raw = import.meta.env.VITE_API_BASE_URL;
   if (!raw) return '/api';
-  const withScheme = /^https?:\/\//.test(raw) ? raw : `https://${raw}`;
+  // Render may give just the service slug (no domain) - add the default one.
+  const host = /^https?:\/\//.test(raw) || raw.includes('.') || raw.includes(':') ? raw : `${raw}.onrender.com`;
+  const withScheme = /^https?:\/\//.test(host) ? host : `https://${host}`;
   const trimmed = withScheme.replace(/\/+$/, '');
   return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
 }
