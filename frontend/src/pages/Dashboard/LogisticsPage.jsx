@@ -6,16 +6,43 @@ import { format } from 'date-fns';
 const TRAVEL_ICONS = { flight: '✈️', train: '🚆', ship: '🚢', other: '🧳' };
 const TRAVEL_MODES = ['flight', 'train', 'ship', 'other'];
 
-function TravelLegDetails({ place, number, gate, ticket }) {
-  const parts = [
-    place,
-    number && `No. ${number}`,
-    gate && `Gate/Terminal ${gate}`,
-    ticket && `Ticket: ${ticket}`,
-  ].filter(Boolean);
-  if (parts.length === 0) return '—';
-  return <div className="space-y-0.5">{parts.map((p, i) => <p key={i}>{p}</p>)}</div>;
-}
+const fmtDate = (v) => (v ? format(new Date(v), 'dd MMM yyyy') : '');
+const fmtTime = (v) => (v ? format(new Date(v), 'hh:mm a') : '');
+const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
+
+// One column per detail, spreadsheet style. The same list drives the on-screen
+// table and the Excel/CSV export so they can never drift apart.
+// `value(g, answers)` is the plain cell value; `num` right-aligns/totals.
+const buildColumns = (questions) => {
+  const leg = (group, p) => [
+    { group, label: 'Date', value: (g) => fmtDate(g[p.dt]), pending: p.dt === 'arrival_datetime' },
+    { group, label: 'Time', value: (g) => fmtTime(g[p.dt]) },
+    { group, label: 'Airport / Station', value: (g) => g[p.place] || '' },
+    { group, label: 'Flight / Train No.', value: (g) => g[p.number] || '' },
+    { group, label: 'Terminal / Platform', value: (g) => g[p.gate] || '' },
+    { group, label: 'Ticket Details', value: (g) => g[p.ticket] || '' },
+  ];
+  return [
+    { group: 'Guest', label: 'Name', value: (g) => `${g.first_name || ''} ${g.last_name || ''}`.trim(), sticky: true, bold: true },
+    { group: 'Guest', label: 'Email', value: (g) => g.email || '' },
+    { group: 'Guest', label: 'Phone', value: (g) => g.phone || '' },
+    { group: 'Travel', label: 'Mode', value: (g) => cap(g.travel_mode), icon: (g) => TRAVEL_ICONS[g.travel_mode] },
+    { group: 'Travel', label: 'PAX', value: (g) => g.party_size || 1, num: true, total: true },
+    { group: 'Travel', label: 'Party Members', value: (g) => (g.party_member_names || []).join(', ') },
+    { group: 'Travel', label: 'Luggage', value: (g) => (g.luggage_count ?? ''), num: true, total: true },
+    ...leg('Arrival', { dt: 'arrival_datetime', place: 'arrival_location', number: 'travel_details', gate: 'arrival_terminal', ticket: 'arrival_ticket_details' }),
+    ...leg('Departure', { dt: 'departure_datetime', place: 'departure_location', number: 'departure_travel_number', gate: 'departure_terminal', ticket: 'departure_ticket_details' }),
+    ...questions.map((q) => ({ group: 'RSVP Answers', label: q.question_text, value: (g, a) => a[q.id] ?? '' })),
+  ];
+};
+
+const GROUP_STYLE = {
+  Guest: 'bg-slate-200 text-slate-800',
+  Travel: 'bg-sky-100 text-sky-800',
+  Arrival: 'bg-emerald-100 text-emerald-800',
+  Departure: 'bg-amber-100 text-amber-800',
+  'RSVP Answers': 'bg-violet-100 text-violet-800',
+};
 
 export default function LogisticsPage() {
   const [guests, setGuests] = useState([]);
@@ -39,12 +66,6 @@ export default function LogisticsPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
-
-  const questionText = useMemo(() => {
-    const m = {};
-    questions.forEach(q => { m[q.id] = q.question_text; });
-    return m;
-  }, [questions]);
 
   // RSVP answers live on the per-event submission (custom_answers), but a
   // guest only fills them out once - merge across their submissions so the
@@ -83,38 +104,28 @@ export default function LogisticsPage() {
     return { withArrival: withArrival.length, totalHeadcount, modeBreakdown };
   }, [guests]);
 
+  const columns = useMemo(() => buildColumns(questions), [questions]);
+
+  // Consecutive columns of the same group share one header cell.
+  const groups = useMemo(() => {
+    const out = [];
+    columns.forEach((c) => {
+      const last = out[out.length - 1];
+      if (last && last.name === c.group) last.count += 1;
+      else out.push({ name: c.group, count: 1 });
+    });
+    return out;
+  }, [columns]);
+
+  const totals = useMemo(() => columns.map((c) => (
+    c.total ? filtered.reduce((sum, g) => sum + (Number(c.value(g, answersByGuest[g.id] || {})) || 0), 0) : null
+  )), [columns, filtered, answersByGuest]);
+
   const handleExport = () => {
-    const headers = [
-      'First Name', 'Last Name', 'Email', 'Phone',
-      'Travel Mode', 'Party Size (PAX)', 'Party Member Names', 'Luggage Count',
-      'Arrival Date & Time', 'Arrival Airport/Station', 'Arrival Flight/Train No.', 'Arrival Terminal/Platform', 'Arrival Ticket Details',
-      'Departure Date & Time', 'Departure Airport/Station', 'Departure Flight/Train No.', 'Departure Terminal/Platform', 'Departure Ticket Details',
-      ...questions.map(q => q.question_text),
-    ];
-    const fmt = (d) => (d ? format(new Date(d), 'yyyy-MM-dd HH:mm') : '');
-    const rows = filtered.map(g => {
+    const headers = ['#', ...columns.map(c => (c.group === 'Arrival' || c.group === 'Departure' ? `${c.group} ${c.label}` : c.label))];
+    const rows = filtered.map((g, i) => {
       const answers = answersByGuest[g.id] || {};
-      return [
-        g.first_name || '',
-        g.last_name || '',
-        g.email || '',
-        g.phone || '',
-        g.travel_mode || '',
-        g.party_size || 1,
-        (g.party_member_names || []).join(', '),
-        g.luggage_count ?? '',
-        fmt(g.arrival_datetime),
-        g.arrival_location || '',
-        g.travel_details || '',
-        g.arrival_terminal || '',
-        g.arrival_ticket_details || '',
-        fmt(g.departure_datetime),
-        g.departure_location || '',
-        g.departure_travel_number || '',
-        g.departure_terminal || '',
-        g.departure_ticket_details || '',
-        ...questions.map(q => answers[q.id] ?? ''),
-      ];
+      return [i + 1, ...columns.map(c => c.value(g, answers))];
     });
     const escape = (v) => `"${String(v).replace(/"/g, '""')}"`;
     const csv = [headers, ...rows].map(row => row.map(escape).join(',')).join('\n');
@@ -128,6 +139,9 @@ export default function LogisticsPage() {
   };
 
   if (loading) return <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary-400" /></div>;
+
+  const cell = 'border border-gray-300 px-3 py-1.5 whitespace-nowrap';
+  const head = 'border border-gray-300 px-3 py-2 whitespace-nowrap font-semibold text-gray-700 bg-gray-100';
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -168,7 +182,7 @@ export default function LogisticsPage() {
         </div>
       </div>
 
-      {/* Filters & Table */}
+      {/* Filters & spreadsheet */}
       <div className="card overflow-hidden">
         <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
@@ -180,67 +194,67 @@ export default function LogisticsPage() {
             {TRAVEL_MODES.map(m => <option key={m} value={m}>{TRAVEL_ICONS[m]} {m.charAt(0).toUpperCase() + m.slice(1)}</option>)}
           </select>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
+
+        <div className="overflow-auto max-h-[70vh]">
+          <table className="border-collapse text-sm min-w-full">
+            <thead>
+              {/* group row */}
               <tr>
-                <th className="text-left px-4 py-3 text-gray-500 font-medium">Guest</th>
-                <th className="text-left px-4 py-3 text-gray-500 font-medium">Contact</th>
-                <th className="text-left px-4 py-3 text-gray-500 font-medium">Arrival</th>
-                <th className="text-left px-4 py-3 text-gray-500 font-medium">Travel</th>
-                <th className="text-left px-4 py-3 text-gray-500 font-medium">Departure</th>
-                <th className="text-left px-4 py-3 text-gray-500 font-medium hidden md:table-cell">Arrival Details</th>
-                <th className="text-left px-4 py-3 text-gray-500 font-medium hidden md:table-cell">Departure Details</th>
-                <th className="text-left px-4 py-3 text-gray-500 font-medium">PAX / Luggage</th>
-                <th className="text-left px-4 py-3 text-gray-500 font-medium hidden lg:table-cell">RSVP Answers</th>
+                <th rowSpan={2} className={`${head} sticky top-0 left-0 z-30 w-12 min-w-[48px] text-center`}>#</th>
+                {groups.map((g) => (
+                  <th key={g.name} colSpan={g.count} className={`border border-gray-300 px-3 py-1.5 text-center font-semibold sticky top-0 z-20 h-[33px] ${GROUP_STYLE[g.name] || 'bg-gray-200 text-gray-800'}`}>{g.name}</th>
+                ))}
+              </tr>
+              {/* column row */}
+              <tr>
+                {columns.map((c, i) => (
+                  <th
+                    key={`${c.group}-${c.label}-${i}`}
+                    className={`${head} sticky top-[33px] z-20 text-left ${c.num ? 'text-center' : ''} ${c.sticky ? 'left-12 z-30 min-w-[160px]' : ''}`}
+                  >
+                    {c.label}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={9} className="text-center py-10 text-gray-400">No guests found</td></tr>
-              ) : filtered.map(g => {
+                <tr><td colSpan={columns.length + 1} className="text-center py-10 text-gray-400 border border-gray-200">No guests found</td></tr>
+              ) : filtered.map((g, i) => {
                 const answers = answersByGuest[g.id] || {};
-                const answerEntries = Object.entries(answers);
                 return (
-                  <tr key={g.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{g.first_name} {g.last_name}</td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">{g.email || g.phone || '—'}</td>
-                    <td className="px-4 py-3">
-                      {g.arrival_datetime ? (
-                        <span className="text-gray-700">{format(new Date(g.arrival_datetime), 'PPp')}</span>
-                      ) : (
-                        <span className="badge badge-yellow">Pending</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">{g.travel_mode ? `${TRAVEL_ICONS[g.travel_mode] || ''} ${g.travel_mode}` : '—'}</td>
-                    <td className="px-4 py-3 text-gray-700">
-                      {g.departure_datetime ? format(new Date(g.departure_datetime), 'PPp') : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs hidden md:table-cell">
-                      <TravelLegDetails place={g.arrival_location} number={g.travel_details} gate={g.arrival_terminal} ticket={g.arrival_ticket_details} />
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs hidden md:table-cell">
-                      <TravelLegDetails place={g.departure_location} number={g.departure_travel_number} gate={g.departure_terminal} ticket={g.departure_ticket_details} />
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">
-                      {g.party_size || 1} pax{g.luggage_count != null && <span className="text-gray-400"> · {g.luggage_count} bags</span>}
-                      {g.party_member_names?.length > 0 && (
-                        <p className="text-xs text-gray-400 mt-0.5">{g.party_member_names.join(', ')}</p>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">
-                      {answerEntries.length === 0 ? '—' : (
-                        <div className="space-y-0.5">
-                          {answerEntries.map(([qId, val]) => (
-                            <p key={qId} className="text-xs"><span className="text-gray-400">{questionText[qId] || 'Question'}:</span> {String(val)}</p>
-                          ))}
-                        </div>
-                      )}
-                    </td>
+                  <tr key={g.id} className="odd:bg-white even:bg-gray-50 hover:bg-primary-50/50">
+                    <td className={`${cell} sticky left-0 z-10 bg-gray-100 text-center text-gray-500 font-medium`}>{i + 1}</td>
+                    {columns.map((c, ci) => {
+                      const v = c.value(g, answers);
+                      const empty = v === '' || v === null || v === undefined;
+                      return (
+                        <td
+                          key={ci}
+                          className={`${cell} ${c.num ? 'text-center' : ''} ${c.bold ? 'font-medium text-gray-900' : 'text-gray-700'} ${c.sticky ? 'sticky left-12 z-10 bg-white' : ''}`}
+                        >
+                          {c.pending && empty
+                            ? <span className="badge badge-yellow">Pending</span>
+                            : <>{!empty && c.icon && c.icon(g) ? `${c.icon(g)} ` : ''}{empty ? '' : String(v)}</>}
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })}
             </tbody>
+            {filtered.length > 0 && (
+              <tfoot>
+                <tr className="font-semibold">
+                  <td className={`${cell} sticky bottom-0 left-0 z-20 bg-gray-200`} />
+                  {columns.map((c, ci) => (
+                    <td key={ci} className={`${cell} sticky bottom-0 z-10 bg-gray-200 text-gray-800 ${c.num ? 'text-center' : ''} ${c.sticky ? 'left-12 z-20' : ''}`}>
+                      {ci === 0 ? 'Total' : totals[ci] !== null ? totals[ci] : ''}
+                    </td>
+                  ))}
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
