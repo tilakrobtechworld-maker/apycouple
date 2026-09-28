@@ -8,7 +8,6 @@ const ROUTE_TITLES = {
   '/admin':               'Platform Overview',
   '/admin/couples':       'Couples Management',
   '/admin/themes':        'Theme Management',
-  '/admin/media':         'Media Moderation',
   '/admin/notifications': 'Platform Notifications',
   '/admin/subscriptions': 'Subscription Management',
   '/admin/settings':      'Platform Settings',

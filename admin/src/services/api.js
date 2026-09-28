@@ -114,25 +114,6 @@ export const adminApi = {
   generateThemeAI: (prompt) =>
     api.post('/themes/generate-ai', { prompt }),
 
-  // ── 3D Scene Templates ───────────────────────────────────────────────────────
-  getSceneTemplates: () =>
-    api.get('/admin/scene-templates'),
-
-  createSceneTemplate: (data) =>
-    api.post('/scene-templates', data),
-
-  updateSceneTemplate: (id, data) =>
-    api.put(`/scene-templates/${id}`, data),
-
-  deleteSceneTemplate: (id) =>
-    api.delete(`/scene-templates/${id}`),
-
-  toggleSceneTemplateActive: (id) =>
-    api.put(`/scene-templates/${id}/toggle`),
-
-  uploadSceneImage: (formData) =>
-    api.post('/scene-templates/upload-image', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
-
   // ── Card Templates ────────────────────────────────────────────────────────
   getCardTemplates: () =>
     api.get('/admin/card-templates'),

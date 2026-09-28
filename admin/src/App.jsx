@@ -11,8 +11,6 @@ const CouplesPage = lazy(() => import('./pages/CouplesPage'));
 const CoupleDetail = lazy(() => import('./pages/CoupleDetail'));
 const ThemesPage = lazy(() => import('./pages/ThemesPage'));
 const CardTemplatesPage = lazy(() => import('./pages/CardTemplatesPage'));
-const SceneEditorPage = lazy(() => import('./pages/SceneEditorPage'));
-const MediaModerationPage = lazy(() => import('./pages/MediaModerationPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const SubscriptionsPage = lazy(() => import('./pages/SubscriptionsPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
@@ -70,8 +68,6 @@ export default function App() {
           <Route path="couples/:id" element={<Suspense fallback={<PageLoader />}><CoupleDetail /></Suspense>} />
           <Route path="themes" element={<Suspense fallback={<PageLoader />}><ThemesPage /></Suspense>} />
           <Route path="card-templates" element={<Suspense fallback={<PageLoader />}><CardTemplatesPage /></Suspense>} />
-          <Route path="3d-editor" element={<Suspense fallback={<PageLoader />}><SceneEditorPage /></Suspense>} />
-          <Route path="media" element={<Suspense fallback={<PageLoader />}><MediaModerationPage /></Suspense>} />
           <Route path="notifications" element={<Suspense fallback={<PageLoader />}><NotificationsPage /></Suspense>} />
           <Route path="subscriptions" element={<Suspense fallback={<PageLoader />}><SubscriptionsPage /></Suspense>} />
           <Route path="settings" element={<Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>} />

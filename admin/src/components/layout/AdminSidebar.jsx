@@ -1,8 +1,8 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Heart, Palette, Sparkles, Image, Bell,
-  CreditCard, Settings, Shield, LogOut, X, Box,
+  LayoutDashboard, Heart, Palette, Sparkles, Bell,
+  CreditCard, Settings, Shield, LogOut, X,
 } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 
@@ -12,8 +12,6 @@ const NAV_ITEMS = [
   { to: '/admin/couples',       label: 'Couples',           icon: Heart },
   { to: '/admin/themes',        label: 'Themes',            icon: Palette },
   { to: '/admin/card-templates', label: 'Card Templates',   icon: Sparkles },
-  { to: '/admin/3d-editor',      label: '3D Editor',         icon: Box },
-  { to: '/admin/media',         label: 'Media Moderation',  icon: Image },
   { to: '/admin/notifications', label: 'Notifications',     icon: Bell },
   { to: '/admin/subscriptions', label: 'Subscriptions',     icon: CreditCard },
   { to: '/admin/settings',      label: 'Settings',          icon: Settings },
