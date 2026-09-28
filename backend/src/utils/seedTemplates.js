@@ -108,28 +108,31 @@ const seedTemplates = async () => {
 // static files served from the frontend (frontend/public/card-templates); every
 // piece of text is its own editable element with default wording, so couples
 // can edit, move, restyle or delete any of it.
-const CARD_K = 1080 / 474; // the artwork was laid out at 474px wide
-
-const walimaBlueFloralElements = () => {
-  const ink = '#1b1b1f';
-  const rule = '#9aa0ab';
+// Helper for laying elements out in the source artwork's own pixel space:
+// `k` = card width / artwork width, cx/cy are artwork coordinates (centre of the
+// text), w/F (box width, font size) are in card pixels.
+const cardBuilder = (k, ink, rule) => {
   const els = [];
   let z = 1;
-  // cx/cy are in the artwork's own 474px space, w/F are in card pixels.
-  const text = (id, content, cx, cy, w, F, fontFamily, fontWeight = 400, lineH = 1.45) => {
+  const text = (id, content, cx, cy, w, F, fontFamily, fontWeight = 400, lineH = 1.45, color = ink) => {
     const h = Math.round(F * lineH);
     els.push({
-      id, type: 'text', x: Math.round(cx * CARD_K - w / 2), y: Math.round(cy * CARD_K - h / 2),
+      id, type: 'text', x: Math.round(cx * k - w / 2), y: Math.round(cy * k - h / 2),
       width: w, height: h, rotation: 0, zIndex: z++, content,
-      style: { fontFamily, fontSize: F, color: ink, textAlign: 'center', fontWeight },
+      style: { fontFamily, fontSize: F, color, textAlign: 'center', fontWeight },
     });
   };
   const line = (id, x0, x1, y) => {
     els.push({
-      id, type: 'shape', x: Math.round(x0 * CARD_K), y: Math.round(y * CARD_K), width: Math.round((x1 - x0) * CARD_K), height: 2,
+      id, type: 'shape', x: Math.round(x0 * k), y: Math.round(y * k), width: Math.round((x1 - x0) * k), height: 2,
       rotation: 0, zIndex: z++, content: '', style: { background: rule, shapeType: 'rectangle', opacity: 1 },
     });
   };
+  return { els, text, line };
+};
+
+const walimaBlueFloralElements = () => {
+  const { els, text, line } = cardBuilder(1080 / 474, '#1b1b1f', '#9aa0ab'); // artwork is 474px wide
 
   text('bismillah', 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ', 237, 51, 560, 52, 'Amiri', 700, 1.7);
   text('caption', 'AND WE CREATED YOU IN PAIRS. QURAN [78:8]', 237, 74.5, 700, 14, 'Lato', 700);
@@ -155,6 +158,20 @@ const walimaBlueFloralElements = () => {
   return els;
 };
 
+const springBotanicalElements = () => {
+  const { els, text } = cardBuilder(1080 / 437, '#b5905c', '#b5905c'); // artwork is 437px wide
+  text('title-1', 'WEDDING INVITATION WITH', 216, 39.5, 700, 30, 'Quicksand', 500);
+  text('title-2', 'SPRING FLOWERS', 216, 52.5, 700, 30, 'Quicksand', 500);
+  text('bride', 'Isabella', 217.5, 112, 600, 155, 'Dancing Script', 400, 1.5);
+  text('and', 'and', 218, 176, 300, 80, 'Dancing Script', 400, 1.5);
+  text('groom', 'Michael', 219, 240, 640, 172, 'Dancing Script', 400, 1.5);
+  text('date', '27 April 2019', 219, 290.5, 600, 31, 'Quicksand', 500);
+  text('list-1', 'Iris, Ranunculus, Lilac, Pulmonaria,', 218.5, 316.5, 700, 30, 'Quicksand', 500);
+  text('list-2', 'Tulip, Fritillaria meleagris', 221, 330, 700, 30, 'Quicksand', 500);
+  text('list-3', 'Carnation, Bell', 219, 344, 700, 30, 'Quicksand', 500);
+  return els;
+};
+
 const seedCardTemplates = async () => {
   const { CardTemplate } = require('../models');
   const { toOrigin } = require('./toOrigin');
@@ -177,6 +194,24 @@ const seedCardTemplates = async () => {
       sort_order: 20,
     },
   });
+
+  await CardTemplate.findOrCreate({
+    where: { slug: 'spring-blue-botanical' },
+    defaults: {
+      name: 'Spring Blue Botanical',
+      slug: 'spring-blue-botanical',
+      description: 'Blue engraved spring flowers on warm ivory with gold script - all wording is editable.',
+      preview_image_url: `${assets}/spring-blue-botanical-preview.jpg`,
+      background_image_url: `${assets}/spring-blue-botanical-bg.jpg`,
+      background_color: '#f2edea',
+      canvas_width: 1080,
+      canvas_height: 1512,
+      default_elements: springBotanicalElements(),
+      is_premium: false,
+      is_active: true,
+      sort_order: 21,
+    },
+  });
 };
 
-module.exports = { ensureThemeLayoutColumn, seedTemplates, seedCardTemplates, TEMPLATES, walimaBlueFloralElements };
+module.exports = { ensureThemeLayoutColumn, seedTemplates, seedCardTemplates, TEMPLATES, walimaBlueFloralElements, springBotanicalElements };

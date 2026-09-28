@@ -13,7 +13,7 @@ import {
 import toast from 'react-hot-toast';
 
 const DISPLAY_WIDTH = 380;
-const GOOGLE_FONTS = ['Playfair Display', 'Cormorant Garamond', 'EB Garamond', 'Cinzel', 'Great Vibes', 'Dancing Script', 'Amiri', 'Lato', 'Montserrat', 'Open Sans', 'Raleway', 'Inter'];
+const GOOGLE_FONTS = ['Playfair Display', 'Cormorant Garamond', 'EB Garamond', 'Cinzel', 'Great Vibes', 'Dancing Script', 'Amiri', 'Quicksand', 'Lato', 'Montserrat', 'Open Sans', 'Raleway', 'Inter'];
 
 // Fills {{bride_name}}-style tokens in a card template's custom HTML with
 // the couple's actual data before it's rendered.
