@@ -438,7 +438,7 @@ const sendLogistics = async (req, res) => {
     let sent = 0; let failed = 0;
     for (const guest of guests) {
       try { await sendLogisticsEmail(guest, couple); sent++; }
-      catch (mailErr) { console.error(Logistics email failed for :, mailErr.message); failed++; }
+      catch (mailErr) { console.error(`Logistics email failed for ${guest.email}:`, mailErr.message); failed++; }
     }
     return success(res, { sent, failed, total: guests.length }, 'Logistics emails processed.');
   } catch (err) { console.error('sendLogistics error:', err); error(res, 'Failed to send logistics emails.', 500); }
@@ -457,4 +457,5 @@ module.exports = {
   sendInvites,
   sendLogistics,
 };
+
 
