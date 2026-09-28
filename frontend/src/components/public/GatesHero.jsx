@@ -1,4 +1,4 @@
-import { Component, Suspense, useMemo, useRef } from 'react';
+import { Component, Suspense, useLayoutEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer, Sparkles, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
@@ -6,9 +6,10 @@ import { motion, useInView, useReducedMotion, useScroll, useSpring, useTransform
 import { ChevronDown } from 'lucide-react';
 
 // Scroll-driven hero for the "Royal Gates" template: a tall scroll track holds a
-// sticky full-screen three.js scene. As the guest scrolls, two ornate gates swing
-// open, the camera glides through them, the couple's names appear in the light
-// behind, and the scene dissolves into the rest of the page.
+// sticky full-screen three.js scene. As the guest scrolls, two massive old-world
+// wooden gates (iron-strapped, brass-studded, set in an aged stone arch and lit by
+// flickering torches) swing open, the camera glides through them, the couple's
+// names appear in the light behind, and the scene dissolves into the rest of the page.
 
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const ease = (x) => x * x * (3 - 2 * x);
@@ -21,38 +22,97 @@ class Boundary extends Component {
   render() { return this.state.failed ? this.props.fallback ?? null : this.props.children; }
 }
 
-const GOLD = { color: '#c9a13b', metalness: 1, roughness: 0.3, envMapIntensity: 1.3 };
-const W = 1.6; // width of one gate leaf
-const H = 4.2; // height of the gate
+// ─── Geometry constants ───────────────────────────────────────────────────────
+const W = 1.6;      // width of one gate leaf (opening is 2W wide)
+const FLOOR = -2.1; // ground level
+const Y0 = 0.6;     // where the round arch springs from
 
-// One leaf of the gate, drawn hinge-at-origin extending toward +x.
-function Leaf() {
-  const bars = 6;
-  return (
-    <group position={[W / 2, 0, 0]}>
-      {/* frame */}
-      <mesh position={[-W / 2 + 0.06, 0, 0]}><boxGeometry args={[0.12, H, 0.12]} /><meshStandardMaterial {...GOLD} /></mesh>
-      <mesh position={[W / 2 - 0.06, 0, 0]}><boxGeometry args={[0.12, H, 0.12]} /><meshStandardMaterial {...GOLD} /></mesh>
-      {[H / 2 - 0.07, 0, -H / 2 + 0.07].map((y) => (
-        <mesh key={y} position={[0, y, 0]}><boxGeometry args={[W, 0.14, 0.12]} /><meshStandardMaterial {...GOLD} /></mesh>
-      ))}
-      {/* bars with spear tips */}
-      {Array.from({ length: bars }, (_, i) => {
-        const x = -W / 2 + ((i + 1) * W) / (bars + 1);
-        return (
-          <group key={i} position={[x, 0, 0]}>
-            <mesh><cylinderGeometry args={[0.022, 0.022, H, 10]} /><meshStandardMaterial {...GOLD} /></mesh>
-            <mesh position={[0, H / 2 + 0.09, 0]}><coneGeometry args={[0.055, 0.2, 10]} /><meshStandardMaterial {...GOLD} /></mesh>
-          </group>
-        );
-      })}
-      {/* medallion */}
-      <mesh position={[0, 0, 0.02]}><torusGeometry args={[0.36, 0.03, 12, 48]} /><meshStandardMaterial {...GOLD} /></mesh>
-      <mesh position={[0, 0, 0.02]}><torusGeometry args={[0.2, 0.02, 12, 40]} /><meshStandardMaterial {...GOLD} /></mesh>
-      <mesh position={[0, 0, 0.02]}><sphereGeometry args={[0.07, 16, 16]} /><meshStandardMaterial {...GOLD} /></mesh>
-    </group>
-  );
+// Round-arched opening outline, `r` wide on each side of centre.
+const archPath = (r, path = new THREE.Path(), bottom = FLOOR) => {
+  path.moveTo(-r, bottom);
+  path.lineTo(r, bottom);
+  path.lineTo(r, Y0);
+  path.absarc(0, Y0, r, 0, Math.PI, false);
+  path.lineTo(-r, bottom);
+  return path;
+};
+
+// ─── Procedural aged textures (no network, no image assets) ───────────────────
+const rng = (seed) => () => {
+  seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+
+function canvasTexture(size, draw) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  draw(c.getContext('2d'), size);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.anisotropy = 4;
+  return tex;
 }
+
+const woodTexture = () => canvasTexture(512, (g, S) => {
+  const r = rng(11);
+  const planks = 6;
+  const pw = S / planks;
+  for (let i = 0; i < planks; i++) {
+    const x0 = i * pw;
+    g.fillStyle = `hsl(${22 + r() * 6} ${38 + r() * 10}% ${20 + r() * 8}%)`;
+    g.fillRect(x0, 0, pw, S);
+    for (let k = 0; k < 70; k++) { // wavy grain
+      const x = x0 + r() * pw;
+      g.strokeStyle = `rgba(15,7,3,${0.08 + r() * 0.2})`;
+      g.lineWidth = 0.5 + r() * 1.6;
+      g.beginPath();
+      g.moveTo(x, 0);
+      for (let y = 32; y <= S; y += 32) g.lineTo(x + (r() - 0.5) * 5, y);
+      g.stroke();
+    }
+    for (let k = 0; k < 2; k++) { // knots
+      const kx = x0 + pw * (0.25 + r() * 0.5), ky = r() * S;
+      g.strokeStyle = 'rgba(12,5,2,0.55)';
+      for (let rr = 3; rr < 11; rr += 3) { g.lineWidth = 1.2; g.beginPath(); g.ellipse(kx, ky, rr * 0.7, rr * 1.4, 0, 0, Math.PI * 2); g.stroke(); }
+    }
+    g.fillStyle = 'rgba(8,4,2,0.9)'; // gap between planks
+    g.fillRect(x0, 0, 3, S);
+  }
+  for (let i = 0; i < 2500; i++) { // dust / wear
+    g.fillStyle = `rgba(255,225,180,${r() * 0.05})`;
+    g.fillRect(r() * S, r() * S, 1 + r() * 2, 1 + r() * 3);
+  }
+});
+
+const stoneTexture = () => canvasTexture(512, (g, S) => {
+  const r = rng(29);
+  const rows = 4;
+  const rh = S / rows;
+  g.fillStyle = '#2a251f';
+  g.fillRect(0, 0, S, S);
+  for (let row = 0; row < rows; row++) {
+    let x = -(row % 2) * (S / 4);
+    while (x < S) {
+      const bw = 130 + r() * 110;
+      g.fillStyle = `hsl(${32 + r() * 8} ${9 + r() * 7}% ${40 + r() * 13}%)`;
+      g.fillRect(x + 2, row * rh + 2, bw - 4, rh - 4);
+      x += bw;
+    }
+  }
+  for (let i = 0; i < 5000; i++) { // weathering speckle
+    g.fillStyle = r() > 0.5 ? `rgba(0,0,0,${r() * 0.14})` : `rgba(255,245,225,${r() * 0.07})`;
+    g.fillRect(r() * S, r() * S, 1 + r() * 2.5, 1 + r() * 2.5);
+  }
+  for (let i = 0; i < 6; i++) { // soot / damp stains
+    const sx = r() * S, sy = r() * S; // same centre for both circles, or the gradient becomes a cone
+    const gr = g.createRadialGradient(sx, sy, 0, sx, sy, 60 + r() * 80);
+    gr.addColorStop(0, 'rgba(10,8,5,0.16)'); gr.addColorStop(1, 'rgba(10,8,5,0)');
+    g.fillStyle = gr; g.fillRect(sx - 160, sy - 160, 320, 320);
+  }
+});
 
 // Soft warm radial glow used as the "light behind the gates".
 function useGlowTexture() {
@@ -68,6 +128,110 @@ function useGlowTexture() {
     g.fillRect(0, 0, 256, 256);
     return new THREE.CanvasTexture(c);
   }, []);
+}
+
+// ─── Scene parts ──────────────────────────────────────────────────────────────
+
+// Many small brass studs/rivets as a single instanced mesh.
+function Studs({ points, material, radius = 0.05 }) {
+  const ref = useRef();
+  useLayoutEffect(() => {
+    const m = new THREE.Matrix4();
+    points.forEach(([x, y, z], i) => {
+      m.makeScale(1, 1, 0.6).setPosition(x, y, z);
+      ref.current.setMatrixAt(i, m);
+    });
+    ref.current.instanceMatrix.needsUpdate = true;
+  }, [points]);
+  return (
+    <instancedMesh ref={ref} args={[null, null, points.length]} material={material}>
+      <sphereGeometry args={[radius, 10, 8]} />
+    </instancedMesh>
+  );
+}
+
+// One leaf of the gate, hinge at origin extending toward +x. Its top edge is a
+// quarter-circle so the two leaves together close into a round-arched door.
+function Leaf({ mats }) {
+  const geo = useMemo(() => {
+    const s = new THREE.Shape();
+    s.moveTo(0, FLOOR);
+    s.lineTo(W, FLOOR);
+    s.lineTo(W, Y0 + W);
+    s.absarc(W, Y0, W, Math.PI / 2, Math.PI, false);
+    s.lineTo(0, FLOOR);
+    return new THREE.ExtrudeGeometry(s, { depth: 0.14, bevelEnabled: true, bevelSize: 0.015, bevelThickness: 0.015, bevelSegments: 1, curveSegments: 28 });
+  }, []);
+  const archBand = useMemo(() => {
+    const r = W - 0.07;
+    const pts = Array.from({ length: 25 }, (_, i) => {
+      const a = Math.PI / 2 + (i / 24) * (Math.PI / 2);
+      return new THREE.Vector3(W + r * Math.cos(a), Y0 + r * Math.sin(a), 0);
+    });
+    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 40, 0.03, 6);
+  }, []);
+  const strapYs = [-1.55, -0.5, 0.42];
+  const rivets = useMemo(() => {
+    const p = [];
+    strapYs.forEach((y) => { for (let i = 0; i < 8; i++) p.push([0.2 + i * 0.18, y, 0.1]); });
+    [-1.95, -1.03, -0.05, 0.95, 1.3].forEach((y) => { for (let i = 0; i < 4; i++) p.push([0.32 + i * 0.38, y, 0.095]); });
+    return p;
+  }, []);
+
+  return (
+    <group position={[0, 0, -0.07]}>
+      <mesh geometry={geo} material={mats.wood} />
+      {/* everything below sits on the plank face (front of the wood is at z ~ 0.155) */}
+      <group position={[0, 0, 0.085]}>
+        {/* iron border: hinge edge, meeting edge and the arched top */}
+        <mesh position={[0.05, (FLOOR + Y0) / 2, 0.085]} material={mats.iron}><boxGeometry args={[0.1, Y0 - FLOOR, 0.04]} /></mesh>
+        <mesh position={[W - 0.05, (FLOOR + Y0 + W) / 2, 0.085]} material={mats.iron}><boxGeometry args={[0.1, Y0 + W - FLOOR, 0.04]} /></mesh>
+        <mesh geometry={archBand} material={mats.iron} position={[0, 0, 0.085]} />
+        {/* horizontal iron straps */}
+        {strapYs.map((y) => (
+          <mesh key={y} position={[W / 2, y, 0.085]} material={mats.iron}><boxGeometry args={[W - 0.1, 0.15, 0.03]} /></mesh>
+        ))}
+        {/* hinges */}
+        {[-1.55, -0.5, 0.42].map((y) => (
+          <group key={y} position={[0, y, 0.11]}>
+            <mesh position={[0.3, 0, 0]} material={mats.iron}><boxGeometry args={[0.6, 0.09, 0.03]} /></mesh>
+            <mesh material={mats.iron}><cylinderGeometry args={[0.055, 0.055, 0.22, 10]} /></mesh>
+          </group>
+        ))}
+        <Studs points={rivets} material={mats.brass} />
+        {/* lion-head boss + ring knocker */}
+        <group position={[W - 0.42, -0.32, 0.09]}>
+          <mesh material={mats.brass}><sphereGeometry args={[0.12, 16, 12]} /></mesh>
+          <mesh position={[0, 0, 0.09]} rotation={[Math.PI / 2, 0, 0]} material={mats.brass}><coneGeometry args={[0.05, 0.1, 10]} /></mesh>
+          <mesh position={[0, -0.2, 0.02]} material={mats.brass}><torusGeometry args={[0.19, 0.03, 10, 36]} /></mesh>
+        </group>
+      </group>
+    </group>
+  );
+}
+
+// Wall-mounted torch with a flickering flame and light.
+function Torch({ x, mats, seed }) {
+  const light = useRef();
+  const flame = useRef();
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime() + seed;
+    const f = 0.8 + 0.2 * Math.sin(t * 13) * Math.sin(t * 5.3) + 0.08 * Math.sin(t * 29);
+    light.current.intensity = 7 * f;
+    flame.current.scale.set(1, 0.9 + 0.25 * f, 1);
+  });
+  return (
+    <group position={[x, 0.2, 0.55]}>
+      <mesh position={[0, -0.05, -0.15]} material={mats.iron}><boxGeometry args={[0.1, 0.1, 0.35]} /></mesh>
+      <mesh position={[0, 0, 0]} rotation={[0.12, 0, 0]} material={mats.wood}><cylinderGeometry args={[0.055, 0.04, 0.6, 10]} /></mesh>
+      <mesh position={[0, 0.34, 0]} material={mats.iron}><cylinderGeometry args={[0.09, 0.05, 0.12, 12]} /></mesh>
+      <mesh ref={flame} position={[0, 0.5, 0]}>
+        <coneGeometry args={[0.09, 0.3, 12]} />
+        <meshBasicMaterial color="#ffa53a" toneMapped={false} />
+      </mesh>
+      <pointLight ref={light} position={[0, 0.55, 0.15]} color="#ff9a3c" intensity={7} distance={7} decay={2} />
+    </group>
+  );
 }
 
 function PhotoPlane({ url, matRef }) {
@@ -92,6 +256,48 @@ function Scene({ progress, photo, bg }) {
   const gs = Math.min(1.5, Math.max(1, aspect * 0.9)); // scale the gates up on wide screens
   const startZ = aspect < 1 ? 8.6 : 7.4;
 
+  const { mats, wallGeos, ringGeo } = useMemo(() => {
+    const wood = woodTexture();
+    wood.repeat.set(1 / W, 1 / (Y0 + W - FLOOR));
+    const stone = stoneTexture();
+    stone.repeat.set(0.28, 0.28);
+    const floorTex = stoneTexture();
+    floorTex.repeat.set(0.5, 0.5);
+    // The wall around the arch is built from small pieces (rectangles + two
+    // corner "spandrels") instead of one big polygon with a hole - the latter
+    // triangulates into very long slivers that show up as texture artifacts.
+    const R = W + 0.4; // outer radius of the arch ring
+    const rect = (x0, y0, x1, y1) => {
+      const s = new THREE.Shape();
+      s.moveTo(x0, y0); s.lineTo(x1, y0); s.lineTo(x1, y1); s.lineTo(x0, y1); s.closePath();
+      return s;
+    };
+    const spandrel = (sign) => {
+      const s = new THREE.Shape();
+      s.moveTo(sign * R, Y0); s.lineTo(sign * R, Y0 + R); s.lineTo(0, Y0 + R);
+      s.absarc(0, Y0, R, Math.PI / 2, sign > 0 ? 0 : Math.PI, sign > 0);
+      return s;
+    };
+    const wallShapes = [rect(-30, -8, -R, 9), rect(R, -8, 30, 9), rect(-R, Y0 + R, R, 9), spandrel(1), spandrel(-1)];
+    const ring = new THREE.Shape();
+    // outer edge reaches below the floor so the opening's bottom edge doesn't
+    // coincide with it (a degenerate hole makes the triangulation spill over)
+    archPath(W + 0.4, ring, FLOOR - 1);
+    ring.holes.push(archPath(W));
+    return {
+      mats: {
+        wood: new THREE.MeshStandardMaterial({ map: wood, roughness: 0.88, metalness: 0.02, color: '#c9a483' }),
+        iron: new THREE.MeshStandardMaterial({ color: '#25211d', roughness: 0.55, metalness: 0.85 }),
+        brass: new THREE.MeshStandardMaterial({ color: '#b98d3a', roughness: 0.35, metalness: 1, envMapIntensity: 1.2 }),
+        stone: new THREE.MeshStandardMaterial({ map: stone, roughness: 0.95, metalness: 0, color: '#d8ccb8' }),
+        ring: new THREE.MeshStandardMaterial({ map: stone, roughness: 0.9, metalness: 0, color: '#eadfc9' }),
+        floor: new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.85, metalness: 0.05, color: '#8a7f70' }),
+      },
+      wallGeos: wallShapes.map((s) => new THREE.ExtrudeGeometry(s, { depth: 0.9, bevelEnabled: false, curveSegments: 40 })),
+      ringGeo: new THREE.ExtrudeGeometry(ring, { depth: 1.1, bevelEnabled: false, curveSegments: 40 }),
+    };
+  }, []);
+
   useFrame((state) => {
     const p = progress.get();
     const open = ease(clamp((p - 0.12) / 0.5));
@@ -115,14 +321,14 @@ function Scene({ progress, photo, bg }) {
     <>
       <color attach="background" args={[bg]} />
       <fog attach="fog" args={[bg, 8, 26]} />
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[2, 3, 6]} intensity={1.4} color="#ffe9c4" />
+      <ambientLight intensity={0.55} color="#ffe6c4" />
+      <directionalLight position={[2, 3, 6]} intensity={1.3} color="#ffd9a3" />
       <pointLight ref={back} position={[0, 1, -3]} color="#ffd58a" intensity={1} distance={22} decay={2} />
 
       <Environment resolution={128}>
-        <Lightformer form="rect" intensity={2.2} position={[0, 3, 4]} scale={[9, 2, 1]} color="#ffe2a8" />
-        <Lightformer form="rect" intensity={1.2} position={[-5, 0, 2]} scale={[2, 7, 1]} color="#ffffff" />
-        <Lightformer form="rect" intensity={1.2} position={[5, 0, 2]} scale={[2, 7, 1]} color="#ffffff" />
+        <Lightformer form="rect" intensity={1.8} position={[0, 3, 4]} scale={[9, 2, 1]} color="#ffd9a0" />
+        <Lightformer form="rect" intensity={1} position={[-5, 0, 2]} scale={[2, 7, 1]} color="#ffb060" />
+        <Lightformer form="rect" intensity={1} position={[5, 0, 2]} scale={[2, 7, 1]} color="#ffb060" />
       </Environment>
 
       {/* what's behind the gates */}
@@ -135,28 +341,21 @@ function Scene({ progress, photo, bg }) {
           <Suspense fallback={null}><PhotoPlane url={photo} matRef={photoMat} /></Suspense>
         </Boundary>
       )}
-      <Sparkles count={110} scale={[12, 7, 9]} size={3.5} speed={0.35} color="#ffd98a" position={[0, 0, -2]} />
+      <Sparkles count={90} scale={[12, 7, 9]} size={3} speed={0.3} color="#ffcf80" position={[0, 0, -2]} />
 
       <group scale={gs}>
-        {/* wall + lintel around the opening */}
-        <mesh position={[-(W + 15), 0, -0.2]}><boxGeometry args={[30, 14, 0.8]} /><meshStandardMaterial color="#141a33" roughness={0.9} /></mesh>
-        <mesh position={[W + 15, 0, -0.2]}><boxGeometry args={[30, 14, 0.8]} /><meshStandardMaterial color="#141a33" roughness={0.9} /></mesh>
-        <mesh position={[0, H / 2 + 3, -0.2]}><boxGeometry args={[W * 2, 6, 0.8]} /><meshStandardMaterial color="#141a33" roughness={0.9} /></mesh>
-        {/* gold trim + finials */}
-        <mesh position={[0, H / 2 + 0.06, 0.25]}><boxGeometry args={[W * 2 + 0.5, 0.16, 0.1]} /><meshStandardMaterial {...GOLD} /></mesh>
-        {[-1, 1].map((s) => (
-          <group key={s}>
-            <mesh position={[s * (W + 0.06), 0, 0.25]}><boxGeometry args={[0.14, H + 0.3, 0.1]} /><meshStandardMaterial {...GOLD} /></mesh>
-            <mesh position={[s * (W + 0.06), H / 2 + 0.32, 0.25]}><sphereGeometry args={[0.16, 20, 20]} /><meshStandardMaterial {...GOLD} /></mesh>
-          </group>
-        ))}
-        {/* floor */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -H / 2, -6]}>
-          <planeGeometry args={[40, 30]} /><meshStandardMaterial color="#0c1024" roughness={0.6} metalness={0.2} />
+        {/* aged stone wall with a round-arched opening, plus a raised stone arch ring */}
+        {wallGeos.map((g, i) => <mesh key={i} geometry={g} material={mats.stone} position={[0, 0, -0.65]} />)}
+        <mesh geometry={ringGeo} material={mats.ring} position={[0, 0, -0.65]} />
+        {/* flagstone floor */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, FLOOR, -6]} material={mats.floor}>
+          <planeGeometry args={[40, 30]} />
         </mesh>
+        <Torch x={-(W + 1.1)} mats={mats} seed={0} />
+        <Torch x={W + 1.1} mats={mats} seed={2.4} />
         {/* the two leaves, hinged at the outer edges, swinging away from the viewer */}
-        <group ref={left} position={[-W, 0, 0.05]}><Leaf /></group>
-        <group ref={right} position={[W, 0, 0.05]} scale={[-1, 1, 1]}><Leaf /></group>
+        <group ref={left} position={[-W, 0, 0]}><Leaf mats={mats} /></group>
+        <group ref={right} position={[W, 0, 0]} scale={[-1, 1, 1]}><Leaf mats={mats} /></group>
       </group>
     </>
   );

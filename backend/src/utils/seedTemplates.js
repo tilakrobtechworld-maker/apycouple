@@ -39,7 +39,7 @@ const TEMPLATES = [
   },
   {
     layout: 'gates', name: 'Royal Gates 3D', sort_order: 9,
-    description: 'Scroll-driven 3D intro: golden gates swing open and you glide through to the wedding.',
+    description: 'Scroll-driven 3D intro: old-world iron-strapped wooden gates in a stone arch swing open and you glide through to the wedding.',
     palette: { primary: '#E6B85C', secondary: '#8C1C2B', accent: '#F6E3B0', background: '#0B1020', text: '#F3ECDD' },
     fonts: { heading: 'Cinzel', body: 'Lato' },
   },
