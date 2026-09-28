@@ -197,9 +197,6 @@ export default function RsvpPage() {
                     <th className="text-left px-4 py-3 text-gray-500 font-medium">Guest</th>
                     <th className="text-left px-4 py-3 text-gray-500 font-medium">Event</th>
                     <th className="text-left px-4 py-3 text-gray-500 font-medium">Status</th>
-                    <th className="text-left px-4 py-3 text-gray-500 font-medium hidden md:table-cell">Party Size</th>
-                    <th className="text-left px-4 py-3 text-gray-500 font-medium hidden lg:table-cell">Arrival</th>
-                    <th className="text-left px-4 py-3 text-gray-500 font-medium hidden lg:table-cell">Travel</th>
                     <th className="text-left px-4 py-3 text-gray-500 font-medium hidden md:table-cell">Meal</th>
                     <th className="text-left px-4 py-3 text-gray-500 font-medium hidden lg:table-cell">Song Request</th>
                     <th className="text-left px-4 py-3 text-gray-500 font-medium hidden lg:table-cell">Submitted</th>
@@ -207,7 +204,7 @@ export default function RsvpPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {filteredResponses.length === 0 ? (
-                    <tr><td colSpan={9} className="text-center py-10 text-gray-400">No responses yet</td></tr>
+                    <tr><td colSpan={6} className="text-center py-10 text-gray-400">No responses yet</td></tr>
                   ) : filteredResponses.map(r => (
                     <tr key={r.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900">{r.guest?.first_name} {r.guest?.last_name}</td>
@@ -215,9 +212,6 @@ export default function RsvpPage() {
                       <td className="px-4 py-3">
                         <span className={`badge ${r.attending === 'yes' ? 'badge-green' : r.attending === 'no' ? 'badge-red' : 'badge-yellow'}`}>{r.attending}</span>
                       </td>
-                      <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{r.guest?.party_size || 1}</td>
-                      <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">{r.guest?.arrival_datetime ? format(new Date(r.guest.arrival_datetime), 'PPp') : '—'}</td>
-                      <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">{r.guest?.travel_mode ? `${r.guest.travel_mode}${r.guest.travel_details ? ` — ${r.guest.travel_details}` : ''}` : '—'}</td>
                       <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{r.meal_choice || '—'}</td>
                       <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">{r.song_request || '—'}</td>
                       <td className="px-4 py-3 text-gray-400 text-xs hidden lg:table-cell">{r.submitted_at ? format(new Date(r.submitted_at), 'PP') : '—'}</td>

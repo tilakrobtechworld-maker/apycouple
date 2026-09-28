@@ -2,7 +2,7 @@
 
 const { Op } = require('sequelize');
 const {
-  Guest, Event, RsvpSubmission, RsvpQuestion, CoupleProfile, EventGuestAccess, TravelInfo,
+  Guest, Event, RsvpSubmission, RsvpQuestion, CoupleProfile, EventGuestAccess,
 } = require('../models');
 const { success, error, paginated } = require('../utils/apiResponse');
 const { emitRsvpSubmitted } = require('../services/socket.service');
@@ -16,12 +16,6 @@ const TRAVEL_TEXT_FIELDS = [
   'departure_travel_number',
   'arrival_terminal', 'departure_terminal',
 ];
-
-const pickTravelFields = (guest) => ({
-  departure_datetime: guest.departure_datetime,
-  luggage_count: guest.luggage_count,
-  ...Object.fromEntries(TRAVEL_TEXT_FIELDS.map((f) => [f, guest[f]])),
-});
 
 /**
  * GET /api/rsvp/:token
@@ -65,12 +59,8 @@ const getPublicRsvpForm = async (req, res) => {
     });
     const submittedEventIds = submissions.map((s) => s.event_id);
 
-    // Travel/hotel info the couple has set up, so guests can plan their trip
-    const travelInfo = await TravelInfo.findAll({
-      where: { couple_id: guest.couple_id },
-      order: [['sort_order', 'ASC']],
-    });
-
+    // The public RSVP form is just the invitation's events + a response;
+    // travel details are intentionally not part of it.
     return success(res, {
       guest: {
         id: guest.id,
@@ -78,12 +68,6 @@ const getPublicRsvpForm = async (req, res) => {
         last_name: guest.last_name,
         plus_one_allowed: guest.plus_one_allowed,
         plus_one_name: guest.plus_one_name,
-        arrival_datetime: guest.arrival_datetime,
-        travel_mode: guest.travel_mode,
-        travel_details: guest.travel_details,
-        ...pickTravelFields(guest),
-        party_size: guest.party_size,
-        party_member_names: guest.party_member_names || [],
       },
       couple: {
         bride_name: couple?.bride_name,
@@ -96,7 +80,6 @@ const getPublicRsvpForm = async (req, res) => {
       events: guest.events,
       questions,
       already_submitted_for: submittedEventIds,
-      travel_info: travelInfo,
     }, 'RSVP form data retrieved.');
   } catch (err) {
     console.error('getPublicRsvpForm error:', err);

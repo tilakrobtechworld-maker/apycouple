@@ -7,24 +7,6 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
 const QUICK_LABELS = { yes: "you'll be there", no: "you can't make it", maybe: "maybe" };
-const TRAVEL_LABELS = {
-  flight: {
-    travelWord: 'Flight', placeWord: 'Airport', placeExample: 'e.g., Indira Gandhi International Airport',
-    numberLabel: 'Flight Number', numberExample: 'e.g., AI202', gateWord: 'Terminal', gateExample: 'e.g., T3',
-  },
-  train: {
-    travelWord: 'Train', placeWord: 'Station', placeExample: 'e.g., New Delhi Railway Station',
-    numberLabel: 'Train Number / Name', numberExample: 'e.g., 12345 Shatabdi Express', gateWord: 'Platform', gateExample: 'e.g., Platform 4',
-  },
-  ship: {
-    travelWord: 'Ship', placeWord: 'Port', placeExample: 'e.g., Mumbai Port',
-    numberLabel: 'Ship / Cruise Name', numberExample: 'e.g., Queen Mary 2', gateWord: 'Terminal', gateExample: 'e.g., Terminal 1',
-  },
-  other: {
-    travelWord: 'Travel', placeWord: 'Airport / Station', placeExample: 'Airport or station name',
-    numberLabel: 'Flight / Train Number', numberExample: 'e.g., AI202 or 12345', gateWord: 'Terminal / Platform', gateExample: 'e.g., T3 or Platform 4',
-  },
-};
 
 export default function PublicRsvpForm() {
   const { token } = useParams();
@@ -34,9 +16,7 @@ export default function PublicRsvpForm() {
   const [error, setError] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [showAllEvents, setShowAllEvents] = useState(false);
-  const { register, handleSubmit, watch, formState: { isSubmitting } } = useForm();
-  const selectedTravelMode = watch('travel_mode');
-  const partySize = Math.max(1, parseInt(watch('party_size'), 10) || 1);
+  const { register, handleSubmit, formState: { isSubmitting } } = useForm();
 
   useEffect(() => {
     rsvpApi.getPublicForm(token)
@@ -71,20 +51,6 @@ export default function PublicRsvpForm() {
 
       await rsvpApi.submitRsvp(token, {
         responses,
-        arrival_datetime: data.arrival_datetime,
-        departure_datetime: data.departure_datetime,
-        travel_mode: data.travel_mode,
-        travel_details: data.travel_details,
-        arrival_location: data.arrival_location,
-        departure_location: data.departure_location,
-        departure_travel_number: data.departure_travel_number,
-        arrival_terminal: data.arrival_terminal,
-        departure_terminal: data.departure_terminal,
-        arrival_ticket_details: data.arrival_ticket_details,
-        departure_ticket_details: data.departure_ticket_details,
-        luggage_count: data.luggage_count,
-        party_size: data.party_size,
-        party_member_names: (data.party_member_names || []).filter(Boolean),
         plus_one_name: data.plus_one_name,
       });
       setSubmitted(true);
@@ -128,18 +94,7 @@ export default function PublicRsvpForm() {
 
   if (!formData) return null;
 
-  const { guest, couple, events, questions, already_submitted_for = [], travel_info = [] } = formData;
-  const arrivalDefault = guest?.arrival_datetime
-    ? format(new Date(guest.arrival_datetime), "yyyy-MM-dd'T'HH:mm")
-    : '';
-  const departureDefault = guest?.departure_datetime
-    ? format(new Date(guest.departure_datetime), "yyyy-MM-dd'T'HH:mm")
-    : '';
-
-  // Labels adapt to the selected travel mode (airport/terminal vs station/platform)
-  const modeLabels = TRAVEL_LABELS[selectedTravelMode ?? guest?.travel_mode] || TRAVEL_LABELS.other;
-  const { travelWord, placeWord, placeExample, numberLabel, numberExample, gateWord, gateExample } = modeLabels;
-
+  const { guest, couple, events, questions, already_submitted_for = [] } = formData;
   // An invite email for a specific event links here with ?event=<id> so the
   // page opens scoped to just that event, even if the guest has since been
   // granted access to others via a separate invite. "View all" reveals them.
@@ -171,28 +126,6 @@ export default function PublicRsvpForm() {
             You're invited to celebrate with {couple?.bride_name} & {couple?.groom_name}. Please fill out your RSVP below.
           </p>
         </div>
-
-        {/* Travel & Hotel info provided by the couple */}
-        {travel_info.length > 0 && (
-          <div className="card p-6 mb-6">
-            <h3 className="font-semibold text-gray-800 mb-4">Where You'll Be Staying & Getting There</h3>
-            <div className="space-y-4">
-              {travel_info.map(t => (
-                <div key={t.id} className="border border-gray-100 rounded-xl p-4">
-                  <p className="font-medium text-gray-800">{t.title}</p>
-                  {t.hotel_name && <p className="text-sm text-gray-600 mt-1">{t.hotel_name}</p>}
-                  {t.description && <p className="text-sm text-gray-500 mt-1">{t.description}</p>}
-                  {t.discount_code && <p className="text-sm text-gray-500 mt-1">Discount code: <strong>{t.discount_code}</strong></p>}
-                  <div className="flex gap-4 mt-2">
-                    {t.booking_link && <a href={t.booking_link} target="_blank" rel="noreferrer" className="text-sm text-primary-500 hover:underline">Book now</a>}
-                    {t.hotel_url && <a href={t.hotel_url} target="_blank" rel="noreferrer" className="text-sm text-primary-500 hover:underline">Website</a>}
-                    {t.maps_link && <a href={t.maps_link} target="_blank" rel="noreferrer" className="text-sm text-primary-500 hover:underline">Map</a>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {isFiltered && events.length > 1 && (
           <button
@@ -245,103 +178,6 @@ export default function PublicRsvpForm() {
               <input type="hidden" {...register(`events.${idx}.event_id`)} value={event.id} />
             </div>
           ))}
-
-          {/* Travel Details (applies once, not per event) */}
-          <div className="card p-6">
-            <h3 className="font-semibold text-gray-800 mb-1">Your Travel Details</h3>
-            <p className="text-sm text-gray-500 mb-4">This helps us plan pickups and logistics — fill in what you know, update later if plans change.</p>
-            <div>
-              <label className="label">Mode of Travel</label>
-              <select {...register('travel_mode')} defaultValue={guest?.travel_mode || ''} className="input-field">
-                <option value="">Select mode</option>
-                <option value="flight">✈️ Flight</option>
-                <option value="train">🚆 Train</option>
-                <option value="ship">🚢 Ship</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-
-            {/* Arrival */}
-            <div className="mt-5 rounded-xl border border-gray-100 p-4">
-              <h4 className="font-medium text-gray-700 mb-3">🛬 Arrival</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Date & Time of Arrival</label>
-                  <input {...register('arrival_datetime')} type="datetime-local" defaultValue={arrivalDefault} className="input-field" />
-                  <p className="text-xs text-gray-400 mt-1">{travelWord === 'Flight' ? 'Flight landing time' : 'Arrival time'}</p>
-                </div>
-                <div>
-                  <label className="label">{placeWord} Name</label>
-                  <input {...register('arrival_location')} defaultValue={guest?.arrival_location || ''} placeholder={placeExample} className="input-field" />
-                </div>
-                <div>
-                  <label className="label">{numberLabel}</label>
-                  <input {...register('travel_details')} defaultValue={guest?.travel_details || ''} placeholder={numberExample} className="input-field" />
-                </div>
-                <div>
-                  <label className="label">{gateWord} Number</label>
-                  <input {...register('arrival_terminal')} defaultValue={guest?.arrival_terminal || ''} placeholder={gateExample} className="input-field" />
-                </div>
-              </div>
-              <div className="mt-4">
-                <label className="label">Arrival Ticket Details</label>
-                <input {...register('arrival_ticket_details')} defaultValue={guest?.arrival_ticket_details || ''} placeholder={`${travelWord} ticket / PNR / booking reference`} className="input-field" />
-              </div>
-            </div>
-
-            {/* Departure */}
-            <div className="mt-4 rounded-xl border border-gray-100 p-4">
-              <h4 className="font-medium text-gray-700 mb-3">🛫 Departure</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Date & Time of Departure</label>
-                  <input {...register('departure_datetime')} type="datetime-local" defaultValue={departureDefault} className="input-field" />
-                  <p className="text-xs text-gray-400 mt-1">{travelWord === 'Flight' ? 'Flight take-off time' : 'Departure time'}</p>
-                </div>
-                <div>
-                  <label className="label">{placeWord} Name</label>
-                  <input {...register('departure_location')} defaultValue={guest?.departure_location || ''} placeholder={placeExample} className="input-field" />
-                </div>
-                <div>
-                  <label className="label">{numberLabel}</label>
-                  <input {...register('departure_travel_number')} defaultValue={guest?.departure_travel_number || ''} placeholder={numberExample} className="input-field" />
-                </div>
-                <div>
-                  <label className="label">{gateWord} Number</label>
-                  <input {...register('departure_terminal')} defaultValue={guest?.departure_terminal || ''} placeholder={gateExample} className="input-field" />
-                </div>
-              </div>
-              <div className="mt-4">
-                <label className="label">Departure Ticket Details</label>
-                <input {...register('departure_ticket_details')} defaultValue={guest?.departure_ticket_details || ''} placeholder={`${travelWord} ticket / PNR / booking reference`} className="input-field" />
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="label">Number of Passengers (PAX, including you)</label>
-                <input {...register('party_size')} type="number" min={1} defaultValue={guest?.party_size || 1} className="input-field" />
-              </div>
-              <div>
-                <label className="label">Number of Luggage / Baggage</label>
-                <input {...register('luggage_count')} type="number" min={0} defaultValue={guest?.luggage_count ?? ''} placeholder="e.g., 3" className="input-field" />
-              </div>
-            </div>
-            {partySize > 1 && (
-              <div className="mt-4 space-y-3">
-                <label className="label">Names of the {partySize - 1} guest{partySize - 1 !== 1 ? 's' : ''} joining you</label>
-                {Array.from({ length: partySize - 1 }).map((_, i) => (
-                  <input
-                    key={i}
-                    {...register(`party_member_names.${i}`)}
-                    defaultValue={guest?.party_member_names?.[i] || ''}
-                    placeholder={`Guest ${i + 2} full name`}
-                    className="input-field"
-                  />
-                ))}
-              </div>
-            )}
-          </div>
 
           {/* Plus One */}
           {guest?.plus_one_allowed && (
