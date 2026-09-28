@@ -341,6 +341,22 @@ export const TEMPLATES = {
   }),
 };
 
+// 9. Royal Gates (3D) - scroll-driven three.js intro: gates swing open and the
+// camera glides through as the guest scrolls; sections then fade/slide in.
+// Built on the Royal look (navy + gold) with a floating pill nav.
+TEMPLATES.gates = {
+  ...TEMPLATES.royal,
+  label: 'Royal Gates 3D',
+  hero: 'gates',
+  reveal: true,
+  kicker: 'You Are Invited',
+  nav: 'pill',
+  navCls: `rounded-full border ${GOLD} shadow-lg`,
+  navStyle: { background: 'color-mix(in srgb, var(--color-bg) 80%, transparent)' },
+  brandCls: 'font-serif text-sm tracking-[0.25em] uppercase',
+  linkCls: 'text-[11px] uppercase tracking-[0.2em] hover:opacity-70 transition-opacity',
+};
+
 export const TEMPLATE_KEYS = Object.keys(TEMPLATES);
 
 export const getTemplate = (layout) => TEMPLATES[layout] || TEMPLATES.classic;

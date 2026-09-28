@@ -11,6 +11,8 @@ import { getTemplate } from './templates';
 // The three.js stack is heavy (~600kB) - only pay for it on websites whose
 // theme actually has a 3D model, not on every couple's page load.
 const Hero3DModel = lazy(() => import('../../components/public/Hero3DModel'));
+// Same idea for the scroll-driven gates intro (only the Royal Gates template).
+const GatesHero = lazy(() => import('../../components/public/GatesHero'));
 
 // Shared by every section: the active template's style tokens (see
 // templates.js) plus the couple's data and resolved colors/fonts.
@@ -135,7 +137,21 @@ function GalleryLightbox({ photos, index, onClose, onNav }) {
 
 function Section({ id, bg = 'A', className = '', children }) {
   const { t } = useSite();
-  return <section id={id} className={`${t.pad} ${bg === 'A' ? t.bgA : t.bgB} ${t.secCls} ${className}`}>{children}</section>;
+  return (
+    <section id={id} className={`${t.pad} ${bg === 'A' ? t.bgA : t.bgB} ${t.secCls} ${className}`}>
+      {t.reveal ? (
+        // scroll-reveal: content fades/slides up as it enters the viewport
+        <motion.div
+          initial={{ opacity: 0, y: 60 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+        >
+          {children}
+        </motion.div>
+      ) : children}
+    </section>
+  );
 }
 
 function Divider({ mb = 'mb-12' }) {
@@ -297,6 +313,14 @@ function Hero() {
   );
 
   switch (t.hero) {
+    // Scroll-driven three.js gates that open as you scroll (own tall track).
+    case 'gates':
+      return (
+        <Suspense fallback={<div className="min-h-screen" style={{ background: 'var(--color-bg)' }} />}>
+          <GatesHero couple={couple} colors={colors} fonts={fonts} t={t} date={date} />
+        </Suspense>
+      );
+
     // Full-photo backdrop with a thin inset frame, centered uppercase type.
     case 'frame':
       return (

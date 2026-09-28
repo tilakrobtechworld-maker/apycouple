@@ -68,6 +68,7 @@ const LAYOUT_OPTIONS = [
   ['rustic', 'Rustic / Pastel'],
   ['dark', 'Dark / Modern'],
   ['clean', 'Simple / Clean'],
+  ['gates', 'Royal Gates (3D scroll)'],
 ];
 
 // ─── Validation Schema ─────────────────────────────────────────────────────────

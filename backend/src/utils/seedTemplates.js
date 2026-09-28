@@ -38,6 +38,12 @@ const TEMPLATES = [
     fonts: { heading: 'Cinzel', body: 'EB Garamond' },
   },
   {
+    layout: 'gates', name: 'Royal Gates 3D', sort_order: 9,
+    description: 'Scroll-driven 3D intro: golden gates swing open and you glide through to the wedding.',
+    palette: { primary: '#E6B85C', secondary: '#8C1C2B', accent: '#F6E3B0', background: '#0B1020', text: '#F3ECDD' },
+    fonts: { heading: 'Cinzel', body: 'Lato' },
+  },
+  {
     layout: 'rustic', name: 'Rustic Pastel', sort_order: 15,
     description: 'Tilted polaroid hero, warm pastels and scrapbook-style photos.',
     palette: { primary: '#B5835A', secondary: '#E9D8C4', accent: '#8FA58A', background: '#FAF3EA', text: '#4B3A2E' },
