@@ -16,6 +16,7 @@ const { success, error } = require('./utils/apiResponse');
 const { shouldAlterSync } = require('./utils/shouldAlterSync');
 const { toOrigin } = require('./utils/toOrigin');
 const { ensureThemeLayoutColumn, seedTemplates, seedCardTemplates } = require('./utils/seedTemplates');
+const { ensureAdmin } = require('./utils/ensureAdmin');
 
 // ─── Handle uncaught exceptions early ────────────────────────────────────────
 process.on('uncaughtException', (err) => {
@@ -137,6 +138,13 @@ const startServer = async () => {
       await seedCardTemplates();
     } catch (seedErr) {
       console.warn('⚠️  Template setup skipped:', seedErr.message);
+    }
+
+    // Admin panel account from ADMIN_EMAIL / ADMIN_PASSWORD (see utils/ensureAdmin.js)
+    try {
+      await ensureAdmin();
+    } catch (adminErr) {
+      console.warn('⚠️  Admin account setup skipped:', adminErr.message);
     }
 
     server.listen(PORT, () => {
