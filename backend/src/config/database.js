@@ -26,6 +26,9 @@ if (process.env.DATABASE_URL) {
     timezone: '+00:00',
   });
 } else {
+  if (process.env.NODE_ENV === 'production' && !process.env.DB_HOST) {
+    throw new Error('No database configured: set DATABASE_URL (Postgres) in the environment variables.');
+  }
   sequelize = new Sequelize(
     process.env.DB_NAME || 'savethedate_db',
     process.env.DB_USER || 'root',
