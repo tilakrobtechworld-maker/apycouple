@@ -24,6 +24,44 @@ const getTransporter = () => {
   return transporter;
 };
 
+// ─── Sending ──────────────────────────────────────────────────────────────────
+// Render's free plan blocks outbound SMTP (ports 25/465/587), so on hosts like
+// that we send through Brevo's HTTPS API instead. Set BREVO_API_KEY (and
+// EMAIL_FROM = a sender verified in Brevo) to use it; otherwise fall back to SMTP.
+const isEmailConfigured = () => Boolean(process.env.BREVO_API_KEY || process.env.SMTP_USER);
+
+const senderAddress = () => process.env.EMAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER;
+
+const sendMail = async ({ fromName, to, subject, html }) => {
+  if (process.env.BREVO_API_KEY) {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': process.env.BREVO_API_KEY,
+        'content-type': 'application/json',
+        accept: 'application/json',
+      },
+      body: JSON.stringify({
+        sender: { name: fromName, email: senderAddress() },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
+    });
+    if (!res.ok) {
+      throw new Error(`Brevo API ${res.status}: ${await res.text().catch(() => '')}`);
+    }
+    return;
+  }
+
+  await getTransporter().sendMail({
+    from: `"${fromName}" <${senderAddress()}>`,
+    to,
+    subject,
+    html,
+  });
+};
+
 // ─── HTML Template Helpers ────────────────────────────────────────────────────
 const wrapHtmlTemplate = (content, coupleDisplayName = 'Our Wedding', primaryColor = '#B8860B') => `
 <!DOCTYPE html>
@@ -77,7 +115,7 @@ const wrapHtmlTemplate = (content, coupleDisplayName = 'Our Wedding', primaryCol
  *   instead of the generic wedding date.
  */
 const sendInvitation = async (guest, couple, rsvpLink, event = null) => {
-  if (!process.env.SMTP_USER) {
+  if (!isEmailConfigured()) {
     console.warn('⚠️  SMTP not configured. Skipping invitation email.');
     return;
   }
@@ -179,8 +217,8 @@ const sendInvitation = async (guest, couple, rsvpLink, event = null) => {
     </div>
   `;
 
-  await getTransporter().sendMail({
-    from: `"${coupleName}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+  await sendMail({
+    fromName: coupleName,
     to: guest.email,
     subject: event
       ? `You're invited to ${event.title} — ${coupleName}'s Wedding! 💍`
@@ -197,7 +235,7 @@ const sendInvitation = async (guest, couple, rsvpLink, event = null) => {
  * @param {object} couple - CoupleProfile model instance
  */
 const sendSaveTheDate = async (guest, couple) => {
-  if (!process.env.SMTP_USER) {
+  if (!isEmailConfigured()) {
     console.warn('⚠️  SMTP not configured. Skipping save-the-date email.');
     return;
   }
@@ -246,8 +284,8 @@ const sendSaveTheDate = async (guest, couple) => {
     </div>
   `;
 
-  await getTransporter().sendMail({
-    from: `"${coupleName}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+  await sendMail({
+    fromName: coupleName,
     to: guest.email,
     subject: `Save the Date – ${coupleName}'s Wedding 📅`,
     html: wrapHtmlTemplate(content, coupleName, primaryColor),
@@ -264,7 +302,7 @@ const sendSaveTheDate = async (guest, couple) => {
  * @param {object} [couple] - Optional couple profile for branding
  */
 const sendBroadcast = async (recipients, subject, message, couple = null) => {
-  if (!process.env.SMTP_USER) {
+  if (!isEmailConfigured()) {
     console.warn('⚠️  SMTP not configured. Skipping broadcast email.');
     return { sent: 0, failed: recipients.length };
   }
@@ -284,7 +322,6 @@ const sendBroadcast = async (recipients, subject, message, couple = null) => {
   `;
 
   const html = wrapHtmlTemplate(content, coupleName, primaryColor);
-  const from = `"${coupleName}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`;
 
   let sent = 0;
   let failed = 0;
@@ -294,8 +331,7 @@ const sendBroadcast = async (recipients, subject, message, couple = null) => {
   for (let i = 0; i < recipients.length; i += batchSize) {
     const batch = recipients.slice(i, i + batchSize);
     const promises = batch.map((email) =>
-      getTransporter()
-        .sendMail({ from, to: email, subject, html })
+      sendMail({ fromName: coupleName, to: email, subject, html })
         .then(() => sent++)
         .catch((err) => {
           console.error(`Failed to send to ${email}:`, err.message);
