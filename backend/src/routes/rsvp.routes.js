@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const rsvpController = require('../controllers/rsvp.controller');
 const { protect } = require('../middlewares/auth');
@@ -17,6 +17,8 @@ router.post('/questions', rsvpController.createQuestion);
 router.put('/questions/:id', rsvpController.updateQuestion);
 router.delete('/questions/:id', rsvpController.deleteQuestion);
 router.post('/send-invites', rsvpController.sendInvites);
+router.post('/send-logistics', rsvpController.sendLogistics);
 
 module.exports = router;
+
 

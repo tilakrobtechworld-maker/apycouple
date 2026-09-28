@@ -1,9 +1,9 @@
-'use strict';
+﻿'use strict';
 
 const nodemailer = require('nodemailer');
 const { toOrigin } = require('../utils/toOrigin');
 
-// ─── Transporter ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ Transporter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let transporter = null;
 
 const getTransporter = () => {
@@ -25,7 +25,7 @@ const getTransporter = () => {
   return transporter;
 };
 
-// ─── Sending ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Sending â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Render's free plan blocks outbound SMTP (ports 25/465/587), so on hosts like
 // that we send through Brevo's HTTPS API instead. Set BREVO_API_KEY (and
 // EMAIL_FROM = a sender verified in Brevo) to use it; otherwise fall back to SMTP.
@@ -63,7 +63,7 @@ const sendMail = async ({ fromName, to, subject, html }) => {
   });
 };
 
-// ─── HTML Template Helpers ────────────────────────────────────────────────────
+// â”€â”€â”€ HTML Template Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const wrapHtmlTemplate = (content, coupleDisplayName = 'Our Wedding', primaryColor = '#B8860B') => `
 <!DOCTYPE html>
 <html lang="en">
@@ -104,7 +104,7 @@ const wrapHtmlTemplate = (content, coupleDisplayName = 'Our Wedding', primaryCol
 </html>
 `;
 
-// ─── Email Service Functions ──────────────────────────────────────────────────
+// â”€â”€â”€ Email Service Functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Send a wedding invitation email to a guest.
@@ -117,7 +117,7 @@ const wrapHtmlTemplate = (content, coupleDisplayName = 'Our Wedding', primaryCol
  */
 const sendInvitation = async (guest, couple, rsvpLink, event = null) => {
   if (!isEmailConfigured()) {
-    console.warn('⚠️  SMTP not configured. Skipping invitation email.');
+    console.warn('âš ï¸  SMTP not configured. Skipping invitation email.');
     return;
   }
 
@@ -164,12 +164,12 @@ const sendInvitation = async (guest, couple, rsvpLink, event = null) => {
     ? `
       <div class="event-card">
         <table role="presentation" width="100%">
-          ${eventDate ? `<tr><td width="28">📅</td><td><strong>${eventDate}</strong></td></tr>` : ''}
-          ${eventTime ? `<tr><td width="28">🕐</td><td>${eventTime}</td></tr>` : ''}
-          ${event.venue_name ? `<tr><td width="28">📍</td><td><strong>${event.venue_name}</strong>${event.address ? `<br/><span style="color:#888;">${event.address}</span>` : ''}</td></tr>` : ''}
-          ${event.dress_code ? `<tr><td width="28">👔</td><td>Dress code: <strong>${event.dress_code}</strong></td></tr>` : ''}
+          ${eventDate ? `<tr><td width="28">ðŸ“…</td><td><strong>${eventDate}</strong></td></tr>` : ''}
+          ${eventTime ? `<tr><td width="28">ðŸ•</td><td>${eventTime}</td></tr>` : ''}
+          ${event.venue_name ? `<tr><td width="28">ðŸ“</td><td><strong>${event.venue_name}</strong>${event.address ? `<br/><span style="color:#888;">${event.address}</span>` : ''}</td></tr>` : ''}
+          ${event.dress_code ? `<tr><td width="28">ðŸ‘”</td><td>Dress code: <strong>${event.dress_code}</strong></td></tr>` : ''}
         </table>
-        ${directionsLink ? `<div style="text-align:center; margin-top:16px;"><a href="${directionsLink}" class="btn-outline">📍 Get Directions</a></div>` : ''}
+        ${directionsLink ? `<div style="text-align:center; margin-top:16px;"><a href="${directionsLink}" class="btn-outline">ðŸ“ Get Directions</a></div>` : ''}
       </div>
     `
     : '';
@@ -181,18 +181,18 @@ const sendInvitation = async (guest, couple, rsvpLink, event = null) => {
     const apiBase = toOrigin(process.env.API_URL || process.env.RENDER_EXTERNAL_URL, 'http://localhost:5000').replace(/\/+$/, '');
     const quickLink = (r) => `${apiBase}/api/rsvp/quick/${guest.rsvp_token}/${event.id}/${r}`;
     quickRsvpHtml = `
-      <p style="text-align:center; font-size:13px; color:#888; margin-top:24px;">Quick response — one click, no form needed:</p>
+      <p style="text-align:center; font-size:13px; color:#888; margin-top:24px;">Quick response â€” one click, no form needed:</p>
       <div style="text-align:center; margin:12px 0;">
-        <a href="${quickLink('yes')}" style="display:inline-block; background:#22c55e; color:#fff; padding:10px 18px; border-radius:4px; text-decoration:none; font-size:14px; margin:4px; font-weight:bold;">✅ I'll be there</a>
-        <a href="${quickLink('maybe')}" style="display:inline-block; background:#9ca3af; color:#fff; padding:10px 18px; border-radius:4px; text-decoration:none; font-size:14px; margin:4px; font-weight:bold;">🤔 Maybe</a>
-        <a href="${quickLink('no')}" style="display:inline-block; background:#ef4444; color:#fff; padding:10px 18px; border-radius:4px; text-decoration:none; font-size:14px; margin:4px; font-weight:bold;">❌ Can't make it</a>
+        <a href="${quickLink('yes')}" style="display:inline-block; background:#22c55e; color:#fff; padding:10px 18px; border-radius:4px; text-decoration:none; font-size:14px; margin:4px; font-weight:bold;">âœ… I'll be there</a>
+        <a href="${quickLink('maybe')}" style="display:inline-block; background:#9ca3af; color:#fff; padding:10px 18px; border-radius:4px; text-decoration:none; font-size:14px; margin:4px; font-weight:bold;">ðŸ¤” Maybe</a>
+        <a href="${quickLink('no')}" style="display:inline-block; background:#ef4444; color:#fff; padding:10px 18px; border-radius:4px; text-decoration:none; font-size:14px; margin:4px; font-weight:bold;">âŒ Can't make it</a>
       </div>
     `;
   }
 
   const content = `
     <div class="header">
-      <div class="icon">💍</div>
+      <div class="icon">ðŸ’</div>
       <h1>You're Invited!</h1>
       <p>${coupleName} request the pleasure of your company</p>
     </div>
@@ -222,12 +222,12 @@ const sendInvitation = async (guest, couple, rsvpLink, event = null) => {
     fromName: coupleName,
     to: guest.email,
     subject: event
-      ? `You're invited to ${event.title} — ${coupleName}'s Wedding! 💍`
-      : `You're invited to ${coupleName}'s Wedding! 💍`,
+      ? `You're invited to ${event.title} â€” ${coupleName}'s Wedding! ðŸ’`
+      : `You're invited to ${coupleName}'s Wedding! ðŸ’`,
     html: wrapHtmlTemplate(content, coupleName, primaryColor),
   });
 
-  console.log(`✉️  Invitation sent to ${guest.email}${event ? ` (${event.title})` : ''}`);
+  console.log(`âœ‰ï¸  Invitation sent to ${guest.email}${event ? ` (${event.title})` : ''}`);
 };
 
 /**
@@ -237,7 +237,7 @@ const sendInvitation = async (guest, couple, rsvpLink, event = null) => {
  */
 const sendSaveTheDate = async (guest, couple) => {
   if (!isEmailConfigured()) {
-    console.warn('⚠️  SMTP not configured. Skipping save-the-date email.');
+    console.warn('âš ï¸  SMTP not configured. Skipping save-the-date email.');
     return;
   }
 
@@ -266,7 +266,7 @@ const sendSaveTheDate = async (guest, couple) => {
 
   const content = `
     <div class="header">
-      <div class="icon">📅</div>
+      <div class="icon">ðŸ“…</div>
       <h1>Save the Date</h1>
       <p>${coupleName}</p>
     </div>
@@ -288,11 +288,11 @@ const sendSaveTheDate = async (guest, couple) => {
   await sendMail({
     fromName: coupleName,
     to: guest.email,
-    subject: `Save the Date – ${coupleName}'s Wedding 📅`,
+    subject: `Save the Date â€“ ${coupleName}'s Wedding ðŸ“…`,
     html: wrapHtmlTemplate(content, coupleName, primaryColor),
   });
 
-  console.log(`✉️  Save-the-date sent to ${guest.email}`);
+  console.log(`âœ‰ï¸  Save-the-date sent to ${guest.email}`);
 };
 
 /**
@@ -304,7 +304,7 @@ const sendSaveTheDate = async (guest, couple) => {
  */
 const sendBroadcast = async (recipients, subject, message, couple = null) => {
   if (!isEmailConfigured()) {
-    console.warn('⚠️  SMTP not configured. Skipping broadcast email.');
+    console.warn('âš ï¸  SMTP not configured. Skipping broadcast email.');
     return { sent: 0, failed: recipients.length };
   }
 
@@ -342,8 +342,87 @@ const sendBroadcast = async (recipients, subject, message, couple = null) => {
     await Promise.all(promises);
   }
 
-  console.log(`✉️  Broadcast: ${sent} sent, ${failed} failed.`);
+  console.log(`âœ‰ï¸  Broadcast: ${sent} sent, ${failed} failed.`);
   return { sent, failed };
 };
 
-module.exports = { sendInvitation, sendSaveTheDate, sendBroadcast };
+
+/**
+ * Send a logistics / travel-details email to a guest.
+ */
+const sendLogisticsEmail = async (guest, couple) => {
+  if (!isEmailConfigured()) {
+    console.warn('SMTP not configured. Skipping logistics email.');
+    return;
+  }
+  const primaryColor = couple.theme_config?.primary || '#B8860B';
+  const coupleName = couple.couple_display_name || `${couple.bride_name} & ${couple.groom_name}`;
+  const guestName = `${guest.first_name}${guest.last_name ? ' ' + guest.last_name : ''}`;
+
+  const formatDT = (d) => d
+    ? new Date(d).toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    : null;
+
+  const row = (icon, label, value) => value
+    ? `<tr><td width="28" style="padding:6px 0;vertical-align:top;">${icon}</td><td style="padding:6px 0;font-size:14px;color:#444;"><strong>${label}:</strong> ${value}</td></tr>`
+    : '';
+
+  const arrivalRows = [
+    row('✈️', 'Travel Mode', guest.travel_mode),
+    row('🔢', 'Flight / Train No.', guest.travel_details),
+    row('📅', 'Arrival Date & Time', formatDT(guest.arrival_datetime)),
+    row('📍', 'Arriving From', guest.arrival_location),
+    row('🏛️', 'Arrival Terminal', guest.arrival_terminal),
+    row('🎫', 'Arrival Ticket Details', guest.arrival_ticket_details),
+  ].filter(Boolean).join('\n');
+
+  const departureRows = [
+    row('📅', 'Departure Date & Time', formatDT(guest.departure_datetime)),
+    row('📍', 'Departing To', guest.departure_location),
+    row('🔢', 'Departure Travel No.', guest.departure_travel_number),
+    row('🏛️', 'Departure Terminal', guest.departure_terminal),
+    row('🎫', 'Departure Ticket Details', guest.departure_ticket_details),
+  ].filter(Boolean).join('\n');
+
+  const partyRows = [
+    guest.party_size > 1 ? row('👥', 'Party Size', String(guest.party_size)) : '',
+    guest.party_member_names?.length
+      ? row('📋', 'Party Members', Array.isArray(guest.party_member_names) ? guest.party_member_names.join(', ') : guest.party_member_names)
+      : '',
+    guest.luggage_count != null ? row('🧳', 'Luggage Count', String(guest.luggage_count)) : '',
+  ].filter(Boolean).join('\n');
+
+  const section = (title, rows) => rows ? `
+    <div class="event-card">
+      <p style="font-size:13px;font-weight:bold;color:#888;text-transform:uppercase;letter-spacing:1px;margin:0 0 12px;">${title}</p>
+      <table role="presentation" width="100%">${rows}</table>
+    </div>` : '';
+
+  const content = `
+    <div class="header">
+      <div class="icon">🧳</div>
+      <h1>Travel Logistics</h1>
+      <p>${coupleName} — Wedding Logistics Confirmation</p>
+    </div>
+    <div class="body">
+      <p>Dear ${guestName},</p>
+      <p>Thank you for sharing your travel details. Here is a summary of your logistics for <strong>${coupleName}</strong>'s wedding:</p>
+      ${section('🛬 Arrival Details', arrivalRows)}
+      ${section('🛫 Departure Details', departureRows)}
+      ${section('👨‍👩‍👧 Party & Luggage', partyRows)}
+      <hr class="divider" />
+      <p style="font-size:13px;color:#888;">If any details are incorrect, please reply to this email.</p>
+      ${couple.wedding_hashtag ? `<p style="text-align:center;font-size:18px;color:${primaryColor};">${couple.wedding_hashtag}</p>` : ''}
+    </div>
+  `;
+
+  await sendMail({
+    fromName: coupleName,
+    to: guest.email,
+    subject: `Logistics Confirmation — ${coupleName}'s Wedding 🧳`,
+    html: wrapHtmlTemplate(content, coupleName, primaryColor),
+  });
+  console.log(`Logistics email sent to ${guest.email}`);
+};
+module.exports = { sendInvitation, sendSaveTheDate, sendBroadcast, sendLogisticsEmail };
+

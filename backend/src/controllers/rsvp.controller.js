@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 const { Op } = require('sequelize');
 const {
@@ -6,7 +6,7 @@ const {
 } = require('../models');
 const { success, error, paginated } = require('../utils/apiResponse');
 const { emitRsvpSubmitted } = require('../services/socket.service');
-const { sendInvitation } = require('../services/email.service');
+const { sendInvitation, sendLogisticsEmail } = require('../services/email.service');
 const { toOrigin } = require('../utils/toOrigin');
 
 // Extra arrival/departure logistics a guest can share on the RSVP form.
@@ -284,7 +284,7 @@ const getStats = async (req, res) => {
   }
 };
 
-// ─── RSVP Questions ───────────────────────────────────────────────────────────
+// â”€â”€â”€ RSVP Questions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const getQuestions = async (req, res) => {
   try {
@@ -424,6 +424,26 @@ const sendInvites = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/rsvp/send-logistics
+ * Protected: Send logistics/travel-details confirmation email to selected guests.
+ */
+const sendLogistics = async (req, res) => {
+  try {
+    const couple = req.user.coupleProfile;
+    const guestIds = req.body.guest_ids || req.body.guestIds;
+    const where = { couple_id: couple.id, email: { [Op.ne]: null } };
+    if (Array.isArray(guestIds) && guestIds.length) where.id = guestIds;
+    const guests = await Guest.findAll({ where });
+    let sent = 0; let failed = 0;
+    for (const guest of guests) {
+      try { await sendLogisticsEmail(guest, couple); sent++; }
+      catch (mailErr) { console.error(Logistics email failed for :, mailErr.message); failed++; }
+    }
+    return success(res, { sent, failed, total: guests.length }, 'Logistics emails processed.');
+  } catch (err) { console.error('sendLogistics error:', err); error(res, 'Failed to send logistics emails.', 500); }
+};
+
 module.exports = {
   getPublicRsvpForm,
   submitRsvp,
@@ -435,4 +455,6 @@ module.exports = {
   updateQuestion,
   deleteQuestion,
   sendInvites,
+  sendLogistics,
 };
+

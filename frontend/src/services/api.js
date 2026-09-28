@@ -1,4 +1,4 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 
 // VITE_API_BASE_URL may be a full URL ("http://localhost:5000/api") or a bare
 // host (Render's cross-service env vars only provide the hostname, e.g.
@@ -46,7 +46,7 @@ api.interceptors.response.use(
   }
 );
 
-// ─── Auth ─────────────────────────────────────────────────
+// â”€â”€â”€ Auth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const authApi = {
   register: (d) => api.post('/auth/register', d),
   login: (d) => api.post('/auth/login', d),
@@ -55,7 +55,7 @@ export const authApi = {
   refreshToken: (d) => api.post('/auth/refresh', d),
 };
 
-// ─── Couple ───────────────────────────────────────────────
+// â”€â”€â”€ Couple â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const coupleApi = {
   getProfile: () => api.get('/couple/profile'),
   updateProfile: (d) => api.put('/couple/profile', d),
@@ -66,7 +66,7 @@ export const coupleApi = {
   getDashboardStats: () => api.get('/couple/dashboard-stats'),
 };
 
-// ─── Guests ───────────────────────────────────────────────
+// â”€â”€â”€ Guests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const guestApi = {
   getAll: (params) => api.get('/guests', { params }),
   getById: (id) => api.get(`/guests/${id}`),
@@ -84,7 +84,7 @@ export const guestApi = {
   deleteParty: (id) => api.delete(`/guests/parties/${id}`),
 };
 
-// ─── Events ───────────────────────────────────────────────
+// â”€â”€â”€ Events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const eventApi = {
   getAll: () => api.get('/events'),
   getById: (id) => api.get(`/events/${id}`),
@@ -96,7 +96,7 @@ export const eventApi = {
   removeGuestFromEvent: (eventId, guestId) => api.delete(`/events/${eventId}/guests/${guestId}`),
 };
 
-// ─── RSVP ─────────────────────────────────────────────────
+// â”€â”€â”€ RSVP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const rsvpApi = {
   getPublicForm: (token) => api.get(`/rsvp/form/${token}`),
   submitRsvp: (token, d) => api.post(`/rsvp/submit/${token}`, d),
@@ -107,9 +107,10 @@ export const rsvpApi = {
   updateQuestion: (id, d) => api.put(`/rsvp/questions/${id}`, d),
   deleteQuestion: (id) => api.delete(`/rsvp/questions/${id}`),
   sendInvites: (d) => api.post('/rsvp/send-invites', d),
+  sendLogisticsEmail: (d) => api.post('/rsvp/send-logistics', d),
 };
 
-// ─── Media ────────────────────────────────────────────────
+// â”€â”€â”€ Media â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const mediaApi = {
   upload: (formData) => api.post('/media/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   guestUpload: (slug, formData) => api.post(`/media/upload/${slug}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
@@ -122,7 +123,7 @@ export const mediaApi = {
   bulkApprove: (ids) => api.post('/media/bulk-approve', { ids }),
 };
 
-// ─── Guestbook ────────────────────────────────────────────
+// â”€â”€â”€ Guestbook â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const guestbookApi = {
   getAll: () => api.get('/guestbook'),
   getApproved: (slug) => api.get(`/guestbook/${slug}`),
@@ -132,7 +133,7 @@ export const guestbookApi = {
   remove: (id) => api.delete(`/guestbook/${id}`),
 };
 
-// ─── Registry ─────────────────────────────────────────────
+// â”€â”€â”€ Registry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const registryApi = {
   getAll: () => api.get('/registry'),
   create: (d) => api.post('/registry', d),
@@ -141,7 +142,7 @@ export const registryApi = {
   markPurchased: (id) => api.put(`/registry/${id}/purchased`),
 };
 
-// ─── Travel ───────────────────────────────────────────────
+// â”€â”€â”€ Travel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const travelApi = {
   getAll: () => api.get('/travel'),
   create: (d) => api.post('/travel', d),
@@ -150,17 +151,17 @@ export const travelApi = {
   reorder: (ids) => api.put('/travel/reorder', { ids }),
 };
 
-// ─── Themes ───────────────────────────────────────────────
+// â”€â”€â”€ Themes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const themeApi = {
   getAll: () => api.get('/themes'),
 };
 
-// ─── Card Templates ───────────────────────────────────────
+// â”€â”€â”€ Card Templates â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const cardTemplateApi = {
   getAll: () => api.get('/card-templates'),
 };
 
-// ─── Wedding Card ───────────────────────────────────────────
+// â”€â”€â”€ Wedding Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const cardApi = {
   getMine: () => api.get('/cards/me'),
   updateMine: (d) => api.put('/cards/me', d),
@@ -169,7 +170,7 @@ export const cardApi = {
   getPublic: (slug) => api.get(`/public/card/${slug}`),
 };
 
-// ─── Notifications ────────────────────────────────────────
+// â”€â”€â”€ Notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const notificationApi = {
   getAll: () => api.get('/notifications'),
   create: (d) => api.post('/notifications', d),
@@ -177,7 +178,7 @@ export const notificationApi = {
   remove: (id) => api.delete(`/notifications/${id}`),
 };
 
-// ─── Public ───────────────────────────────────────────────
+// â”€â”€â”€ Public â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const publicApi = {
   getWebsite: (slug) => api.get(`/public/website/${slug}`),
   getGallery: (slug) => api.get(`/public/website/${slug}/gallery`),
@@ -187,4 +188,5 @@ export const publicApi = {
 };
 
 export default api;
+
 
