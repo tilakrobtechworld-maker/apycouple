@@ -13,7 +13,7 @@ import {
 import toast from 'react-hot-toast';
 
 const DISPLAY_WIDTH = 380;
-const GOOGLE_FONTS = ['Playfair Display', 'Cormorant Garamond', 'Great Vibes', 'Dancing Script', 'Lato', 'Montserrat', 'Open Sans', 'Raleway', 'Inter'];
+const GOOGLE_FONTS = ['Playfair Display', 'Cormorant Garamond', 'EB Garamond', 'Cinzel', 'Great Vibes', 'Dancing Script', 'Amiri', 'Lato', 'Montserrat', 'Open Sans', 'Raleway', 'Inter'];
 
 // Fills {{bride_name}}-style tokens in a card template's custom HTML with
 // the couple's actual data before it's rendered.
@@ -105,11 +105,23 @@ export default function CardCreator() {
       const content = fieldContent(el.field, card?.couple);
       return content ? { ...el, content } : el;
     });
-    setElements(scaleElements(filledElements, scale));
+    // Templates can have their own canvas size (e.g. a taller invitation), so
+    // adopt it and re-derive the editor scale from the template's width.
+    const nextScale = DISPLAY_WIDTH / (template.canvas_width || card.canvas_width);
+    setScale(nextScale);
+    setElements(scaleElements(filledElements, nextScale));
     // `template` here is stale until the next full reload otherwise - it's
     // what drives whether the custom-HTML preview shows instead of the
     // drag-and-drop canvas below, so it has to update alongside template_id.
-    setCard((c) => ({ ...c, template_id: template.id, template, background_color: template.background_color, background_image_url: template.background_image_url }));
+    setCard((c) => ({
+      ...c,
+      template_id: template.id,
+      template,
+      canvas_width: template.canvas_width || c.canvas_width,
+      canvas_height: template.canvas_height || c.canvas_height,
+      background_color: template.background_color,
+      background_image_url: template.background_image_url,
+    }));
     setSelectedId(null);
   };
 
@@ -140,6 +152,8 @@ export default function CardCreator() {
       const realElements = scaleElements(elements, 1 / scale);
       await cardApi.updateMine({
         template_id: card.template_id,
+        canvas_width: card.canvas_width,
+        canvas_height: card.canvas_height,
         elements: realElements,
         background_color: card.background_color,
         background_image_url: card.background_image_url,
@@ -246,7 +260,7 @@ export default function CardCreator() {
             {templates.map((t) => (
               <div key={t.id} onClick={() => !t.is_premium && applyTemplate(t)}
                 className={`flex-shrink-0 w-28 border-2 rounded-xl overflow-hidden cursor-pointer transition-all ${card?.template_id === t.id ? 'border-primary-500 shadow-md' : 'border-gray-100 hover:border-gray-300'} ${t.is_premium ? 'opacity-75' : ''}`}>
-                <div className="h-16 flex items-center justify-center relative" style={{ background: t.background_image_url ? `url(${t.background_image_url}) center/cover` : t.background_color }}>
+                <div className="h-16 flex items-center justify-center relative" style={{ background: (t.preview_image_url || t.background_image_url) ? `url(${t.preview_image_url || t.background_image_url}) center/cover` : t.background_color }}>
                   {t.is_premium && <div className="absolute inset-0 bg-black/30 flex items-center justify-center"><Lock className="w-4 h-4 text-white" /></div>}
                 </div>
                 <p className="text-xs font-medium text-gray-800 truncate p-1.5">{t.name}</p>
@@ -353,7 +367,7 @@ export default function CardCreator() {
                   </div>
                   <div>
                     <label className="label">Size: {selected.style.fontSize}px</label>
-                    <input type="range" min={8} max={60} value={selected.style.fontSize} onChange={(e) => updateStyle(selected.id, { fontSize: parseInt(e.target.value, 10) })} className="w-full" />
+                    <input type="range" min={4} max={60} value={selected.style.fontSize} onChange={(e) => updateStyle(selected.id, { fontSize: parseInt(e.target.value, 10) })} className="w-full" />
                   </div>
                   <div className="flex items-center justify-between">
                     <label className="label mb-0">Color</label>

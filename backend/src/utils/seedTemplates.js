@@ -101,4 +101,82 @@ const seedTemplates = async () => {
   }
 };
 
-module.exports = { ensureThemeLayoutColumn, seedTemplates, TEMPLATES };
+
+
+// ─── Card (invitation) templates ──────────────────────────────────────────────
+// Ready-made invitation cards for the Card Creator. Backgrounds/previews are
+// static files served from the frontend (frontend/public/card-templates); every
+// piece of text is its own editable element with default wording, so couples
+// can edit, move, restyle or delete any of it.
+const CARD_K = 1080 / 474; // the artwork was laid out at 474px wide
+
+const walimaBlueFloralElements = () => {
+  const ink = '#1b1b1f';
+  const rule = '#9aa0ab';
+  const els = [];
+  let z = 1;
+  // cx/cy are in the artwork's own 474px space, w/F are in card pixels.
+  const text = (id, content, cx, cy, w, F, fontFamily, fontWeight = 400, lineH = 1.45) => {
+    const h = Math.round(F * lineH);
+    els.push({
+      id, type: 'text', x: Math.round(cx * CARD_K - w / 2), y: Math.round(cy * CARD_K - h / 2),
+      width: w, height: h, rotation: 0, zIndex: z++, content,
+      style: { fontFamily, fontSize: F, color: ink, textAlign: 'center', fontWeight },
+    });
+  };
+  const line = (id, x0, x1, y) => {
+    els.push({
+      id, type: 'shape', x: Math.round(x0 * CARD_K), y: Math.round(y * CARD_K), width: Math.round((x1 - x0) * CARD_K), height: 2,
+      rotation: 0, zIndex: z++, content: '', style: { background: rule, shapeType: 'rectangle', opacity: 1 },
+    });
+  };
+
+  text('bismillah', 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ', 237, 51, 560, 52, 'Amiri', 700, 1.7);
+  text('caption', 'AND WE CREATED YOU IN PAIRS. QURAN [78:8]', 237, 74.5, 700, 14, 'Lato', 700);
+  text('parents', 'MR. & MRS. M.RAMZAN NAVEED', 237, 94.5, 800, 29, 'EB Garamond', 700);
+  text('invite', 'CORDIALLY INVITE YOU', 237, 113, 700, 26, 'EB Garamond');
+  text('ceremony', 'AT THE WALIMA CEREMONY OF', 237, 128, 800, 26, 'EB Garamond');
+  text('relation', 'THEIR BELOVED SON', 237, 142.5, 700, 26, 'EB Garamond');
+  text('groom', 'Bilal Naveed', 137, 183, 480, 84, 'Great Vibes', 400, 1.6);
+  text('with', 'WITH', 248, 169, 110, 22, 'EB Garamond');
+  text('bride', 'Asma Zahid', 348, 181, 430, 84, 'Great Vibes', 400, 1.6);
+  text('programme', 'PROGRAMME IN-SHA-ALLAH', 237, 218, 800, 28, 'EB Garamond', 700);
+  text('month', 'JANUARY', 237, 239, 400, 32, 'EB Garamond');
+  line('rule-tl', 143, 213, 251);
+  line('rule-tr', 258, 330, 251);
+  text('weekday', 'MONDAY', 180, 262, 170, 32, 'EB Garamond');
+  text('day', '24', 236, 262, 100, 84, 'EB Garamond', 400, 1.4);
+  text('time', 'AT 1:30 PM', 294, 262, 200, 30, 'EB Garamond');
+  line('rule-bl', 143, 213, 273);
+  line('rule-br', 258, 330, 273);
+  text('year', '2022', 236, 283, 110, 26, 'EB Garamond', 600);
+  text('venue', 'VENUE: GRACE MARQUEE, GUJRAT ROAD PHALIA', 237, 302, 950, 27, 'EB Garamond');
+  text('contact', 'CONTACT: 0344-842892 | 0344-6233182', 237, 319, 950, 25, 'EB Garamond');
+  return els;
+};
+
+const seedCardTemplates = async () => {
+  const { CardTemplate } = require('../models');
+  const { toOrigin } = require('./toOrigin');
+  const assets = `${toOrigin(process.env.FRONTEND_URL, 'http://localhost:3000').replace(/\/+$/, '')}/card-templates`;
+
+  await CardTemplate.findOrCreate({
+    where: { slug: 'walima-blue-floral' },
+    defaults: {
+      name: 'Walima Blue Floral',
+      slug: 'walima-blue-floral',
+      description: 'Soft blue hydrangea invitation with an illustrated couple - all wording is editable.',
+      preview_image_url: `${assets}/walima-blue-floral-preview.jpg`,
+      background_image_url: `${assets}/walima-blue-floral-bg.jpg`,
+      background_color: '#eef3fb',
+      canvas_width: 1080,
+      canvas_height: 1474,
+      default_elements: walimaBlueFloralElements(),
+      is_premium: false,
+      is_active: true,
+      sort_order: 20,
+    },
+  });
+};
+
+module.exports = { ensureThemeLayoutColumn, seedTemplates, seedCardTemplates, TEMPLATES, walimaBlueFloralElements };

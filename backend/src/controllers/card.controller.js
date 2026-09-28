@@ -43,7 +43,8 @@ const getMine = async (req, res) => {
 const updateMine = async (req, res) => {
   try {
     const coupleId = req.user.coupleProfile.id;
-    const { template_id, elements, canvas_width, canvas_height, background_color, background_image_url } = req.body;
+    const { template_id, elements, background_color, background_image_url } = req.body;
+    let { canvas_width, canvas_height } = req.body;
 
     let card = await WeddingCard.findOne({ where: { couple_id: coupleId } });
     if (!card) card = await WeddingCard.create({ couple_id: coupleId });
@@ -59,6 +60,9 @@ const updateMine = async (req, res) => {
         if (nextElements === undefined) nextElements = template.default_elements;
         if (nextBackgroundColor === undefined) nextBackgroundColor = template.background_color;
         if (nextBackgroundImageUrl === undefined) nextBackgroundImageUrl = template.background_image_url;
+        // adopt the template's canvas size too (taller/wider invitations)
+        if (canvas_width === undefined) canvas_width = template.canvas_width;
+        if (canvas_height === undefined) canvas_height = template.canvas_height;
       }
     }
 

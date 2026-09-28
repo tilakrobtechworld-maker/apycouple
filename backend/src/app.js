@@ -15,7 +15,7 @@ const { initSocket } = require('./services/socket.service');
 const { success, error } = require('./utils/apiResponse');
 const { shouldAlterSync } = require('./utils/shouldAlterSync');
 const { toOrigin } = require('./utils/toOrigin');
-const { ensureThemeLayoutColumn, seedTemplates } = require('./utils/seedTemplates');
+const { ensureThemeLayoutColumn, seedTemplates, seedCardTemplates } = require('./utils/seedTemplates');
 
 // ─── Handle uncaught exceptions early ────────────────────────────────────────
 process.on('uncaughtException', (err) => {
@@ -134,6 +134,7 @@ const startServer = async () => {
     try {
       await ensureThemeLayoutColumn();
       await seedTemplates();
+      await seedCardTemplates();
     } catch (seedErr) {
       console.warn('⚠️  Template setup skipped:', seedErr.message);
     }
