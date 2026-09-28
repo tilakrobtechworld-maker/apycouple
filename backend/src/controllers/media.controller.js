@@ -44,7 +44,7 @@ const upload = async (req, res) => {
       cloudinary_id: req.file.filename || req.file.public_id,
       media_type: isVideo ? 'video' : 'photo',
       caption: caption || null,
-      is_approved: req.user ? true : false, // Couple uploads auto-approved
+      is_approved: true, // No moderation step: uploads go straight to the gallery
       uploaded_at: new Date(),
     });
 
@@ -256,11 +256,13 @@ const guestUpload = async (req, res) => {
       media_type: req.file.mimetype?.startsWith('video/') ? 'video' : 'photo',
       caption: caption || null,
       uploader_name: uploader_name || 'Guest',
-      is_approved: false,
+      is_approved: true,
       is_featured: false,
     });
 
-    return success(res, { media }, 'Photo uploaded! It will appear after approval.', 201);
+    emitNewPhoto(couple.id, media.toJSON());
+
+    return success(res, { media }, 'Photo uploaded!', 201);
   } catch (err) {
     console.error('guestUpload error:', err);
     error(res, 'Upload failed.', 500);

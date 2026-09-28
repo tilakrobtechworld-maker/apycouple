@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { mediaApi } from '../../services/api';
-import { Camera, Upload, Check, X, Star, Trash2, Loader2, Play, RefreshCw, Maximize2 } from 'lucide-react';
+import { Camera, Upload, X, Star, Trash2, Loader2, Maximize2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { io } from 'socket.io-client';
 import { useAuth } from '../../context/AuthContext';
@@ -10,9 +10,9 @@ import { API_BASE_URL } from '../../services/api';
 // socket.io connects to the backend origin, not the API path (strip trailing /api)
 const SOCKET_URL = API_BASE_URL.replace(/\/api\/?$/, '') || '/';
 
-const TABS = ['Approved Gallery', 'Pending Approval', 'Live Stream'];
+const TABS = ['Gallery', 'Live Stream'];
 
-function PhotoGrid({ photos, onApprove, onDelete, onFeature, showActions = true }) {
+function PhotoGrid({ photos, onDelete, onFeature, showActions = true }) {
   const [lightbox, setLightbox] = useState(null);
 
   if (photos.length === 0) return (
@@ -30,7 +30,6 @@ function PhotoGrid({ photos, onApprove, onDelete, onFeature, showActions = true 
             <img src={p.thumbnail_url || p.media_url} alt={p.caption || ''} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
             {p.is_featured && <div className="absolute top-2 left-2"><Star className="w-4 h-4 text-yellow-400 fill-yellow-400" /></div>}
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-              {showActions && onApprove && <button onClick={e => { e.stopPropagation(); onApprove(p.id); }} className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white hover:bg-green-600"><Check className="w-4 h-4" /></button>}
               {showActions && onFeature && <button onClick={e => { e.stopPropagation(); onFeature(p.id); }} className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center text-white hover:bg-yellow-600"><Star className="w-4 h-4" /></button>}
               {showActions && onDelete && <button onClick={e => { e.stopPropagation(); onDelete(p.id); }} className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600"><Trash2 className="w-4 h-4" /></button>}
             </div>
@@ -117,14 +116,12 @@ export default function MediaPage() {
   const { coupleProfile } = useAuth();
   const [tab, setTab] = useState(0);
   const [approved, setApproved] = useState([]);
-  const [pending, setPending] = useState([]);
   const [uploading, setUploading] = useState(false);
 
   const fetchMedia = async () => {
     try {
-      const [aRes, pRes] = await Promise.all([mediaApi.getAll({ approved: true }), mediaApi.getPending()]);
+      const aRes = await mediaApi.getAll({ approved: true });
       setApproved(aRes.data.data || []);
-      setPending(pRes.data.data || []);
     } catch {}
   };
 
@@ -145,10 +142,6 @@ export default function MediaPage() {
     },
   });
 
-  const handleApprove = async (id) => {
-    try { await mediaApi.approve(id); toast.success('Photo approved!'); fetchMedia(); }
-    catch { toast.error('Failed'); }
-  };
   const handleDelete = async (id) => {
     if (!confirm('Delete this photo?')) return;
     try { await mediaApi.remove(id); toast.success('Deleted'); fetchMedia(); }
@@ -164,15 +157,14 @@ export default function MediaPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-serif font-bold text-gray-900">Photo Gallery</h1>
-          <p className="text-sm text-gray-500 mt-1">{approved.length} approved • {pending.length} pending</p>
+          <p className="text-sm text-gray-500 mt-1">{approved.length} photos</p>
         </div>
-        {pending.length > 0 && <span className="badge badge-yellow">{pending.length} awaiting approval</span>}
       </div>
 
       <div className="flex border-b border-gray-200">
         {TABS.map((t, i) => (
           <button key={t} onClick={() => setTab(i)} className={`px-5 py-3 text-sm font-medium transition-colors border-b-2 relative ${tab === i ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-            {t}{i === 1 && pending.length > 0 && <span className="ml-1.5 badge badge-red text-xs">{pending.length}</span>}
+            {t}
           </button>
         ))}
       </div>
@@ -188,20 +180,7 @@ export default function MediaPage() {
         </div>
       )}
 
-      {tab === 1 && (
-        <div className="space-y-4">
-          {pending.length > 0 && (
-            <div className="flex justify-end">
-              <button onClick={async () => { await mediaApi.bulkApprove(pending.map(p => p.id)); toast.success('All approved!'); fetchMedia(); }} className="btn-primary text-sm py-2 px-4 flex items-center gap-2">
-                <Check className="w-4 h-4" /> Approve All ({pending.length})
-              </button>
-            </div>
-          )}
-          <PhotoGrid photos={pending} onApprove={handleApprove} onDelete={handleDelete} showActions />
-        </div>
-      )}
-
-      {tab === 2 && <LiveStream coupleId={coupleProfile?.id} />}
+      {tab === 1 && <LiveStream coupleId={coupleProfile?.id} />}
     </div>
   );
 }
