@@ -1,6 +1,7 @@
 'use strict';
 
 const nodemailer = require('nodemailer');
+const { toOrigin } = require('../utils/toOrigin');
 
 // ─── Transporter ──────────────────────────────────────────────────────────────
 let transporter = null;
@@ -177,7 +178,7 @@ const sendInvitation = async (guest, couple, rsvpLink, event = null) => {
   // exactly which single event this invite is for.
   let quickRsvpHtml = '';
   if (event) {
-    const apiBase = (process.env.API_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:5000').replace(/\/+$/, '');
+    const apiBase = toOrigin(process.env.API_URL || process.env.RENDER_EXTERNAL_URL, 'http://localhost:5000').replace(/\/+$/, '');
     const quickLink = (r) => `${apiBase}/api/rsvp/quick/${guest.rsvp_token}/${event.id}/${r}`;
     quickRsvpHtml = `
       <p style="text-align:center; font-size:13px; color:#888; margin-top:24px;">Quick response — one click, no form needed:</p>

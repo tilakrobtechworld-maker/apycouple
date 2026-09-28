@@ -7,6 +7,7 @@ const {
 const { success, error, paginated } = require('../utils/apiResponse');
 const { emitRsvpSubmitted } = require('../services/socket.service');
 const { sendInvitation } = require('../services/email.service');
+const { toOrigin } = require('../utils/toOrigin');
 
 // Extra arrival/departure logistics a guest can share on the RSVP form.
 const TRAVEL_TEXT_FIELDS = [
@@ -185,7 +186,7 @@ const submitRsvp = async (req, res) => {
  * the guest can still add meal choice, plus-one, etc. if they want to.
  */
 const quickRsvp = async (req, res) => {
-  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const baseUrl = toOrigin(process.env.FRONTEND_URL, 'http://localhost:3000').replace(/\/+$/, '');
   const { token, eventId, response } = req.params;
   const fallback = () => res.redirect(`${baseUrl}/rsvp/${token}`);
 
@@ -411,7 +412,7 @@ const sendInvites = async (req, res) => {
       }
     }
 
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const baseUrl = toOrigin(process.env.FRONTEND_URL, 'http://localhost:3000').replace(/\/+$/, '');
     let sent = 0;
     let failed = 0;
     for (const guest of guests) {
