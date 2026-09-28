@@ -121,7 +121,12 @@ export default function WebsiteEditor() {
                       className={`border-2 rounded-xl overflow-hidden cursor-pointer transition-all ${selectedTheme === t.id ? 'border-primary-500 shadow-md' : 'border-gray-100 hover:border-gray-300'} ${t.is_premium ? 'opacity-75' : ''}`}
                     >
                       <div className="aspect-video bg-gradient-to-br from-rose-100 to-gold-100 flex items-center justify-center relative">
-                        {t.preview_image_url ? <img src={t.preview_image_url} alt={t.name} className="w-full h-full object-cover" /> : <Palette className="w-6 h-6 text-gray-400" />}
+                        {t.preview_image_url ? <img src={t.preview_image_url} alt={t.name} className="w-full h-full object-cover" /> : t.color_palette ? (
+                          <div className="absolute inset-0 flex flex-col" style={{ background: t.color_palette.background }}>
+                            <div className="flex-1 flex items-center justify-center text-lg" style={{ color: t.color_palette.text, fontFamily: t.font_pair?.heading }}>{t.name.split(' ')[0]}</div>
+                            <div className="flex h-2">{['primary', 'secondary', 'accent'].map(k => <div key={k} className="flex-1" style={{ background: t.color_palette[k] }} />)}</div>
+                          </div>
+                        ) : <Palette className="w-6 h-6 text-gray-400" />}
                         {t.is_premium && <div className="absolute inset-0 bg-black/30 flex items-center justify-center"><Lock className="w-5 h-5 text-white" /></div>}
                         {selectedTheme === t.id && <div className="absolute top-1 right-1 bg-primary-500 rounded-full p-0.5"><Check className="w-3 h-3 text-white" /></div>}
                       </div>

@@ -57,9 +57,23 @@ const STARTER_THEMES = [
   },
 ];
 
+// Built-in website layouts (implemented in frontend/src/pages/PublicWebsite/templates.js)
+const LAYOUT_OPTIONS = [
+  ['classic', 'Classic (original)'],
+  ['elegant', 'Elegant / Luxury'],
+  ['minimal', 'Minimal / Modern'],
+  ['indian', 'Traditional / Indian'],
+  ['floral', 'Floral / Romantic'],
+  ['royal', 'Royal / Premium'],
+  ['rustic', 'Rustic / Pastel'],
+  ['dark', 'Dark / Modern'],
+  ['clean', 'Simple / Clean'],
+];
+
 // ─── Validation Schema ─────────────────────────────────────────────────────────
 const themeSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
+  layout: z.string().optional(),
   description: z.string().optional(),
   preview_image_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   model_3d_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
@@ -81,6 +95,7 @@ function formDefaults(initialData) {
   return initialData
     ? {
         name: initialData.name,
+        layout: initialData.layout || 'classic',
         description: initialData.description || '',
         preview_image_url: initialData.preview_image_url || '',
         model_3d_url: initialData.model_3d_url || '',
@@ -98,7 +113,7 @@ function formDefaults(initialData) {
         custom_js: initialData.custom_js || '',
       }
     : {
-        name: '', description: '', preview_image_url: '', model_3d_url: '',
+        name: '', layout: 'classic', description: '', preview_image_url: '', model_3d_url: '',
         primary_color: '#6366f1', secondary_color: '#818cf8',
         accent_color: '#a5b4fc', background_color: '#ffffff', text_color: '#1e293b',
         heading_font: 'Playfair Display', body_font: 'Lato',
@@ -196,6 +211,7 @@ function ThemeFormModal({ isOpen, onClose, initialData, onSave }) {
   const onSubmit = async (values) => {
     const payload = {
       name: values.name,
+      layout: values.layout || 'classic',
       description: values.description,
       preview_image_url: values.preview_image_url,
       model_3d_url: values.model_3d_url,
@@ -237,6 +253,14 @@ function ThemeFormModal({ isOpen, onClose, initialData, onSave }) {
     >
       <form id="theme-form" onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <Input label="Theme Name" required error={errors.name?.message} {...register('name')} placeholder="Ivory Romance" />
+
+        <div>
+          <label className="text-sm font-medium text-slate-700">Website Layout</label>
+          <select {...register('layout')} className="admin-input mt-1">
+            {LAYOUT_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+          <p className="text-xs text-slate-400 mt-1">The structure and style of the couple's public website. Colors and fonts below are applied on top.</p>
+        </div>
 
         <div>
           <label className="text-sm font-medium text-slate-700">Preview Image</label>

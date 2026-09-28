@@ -95,7 +95,7 @@ const create = async (req, res) => {
   try {
     const {
       name, description, preview_image_url, model_3d_url, color_palette, font_pair, is_premium, sort_order,
-      custom_html, custom_css, custom_js,
+      custom_html, custom_css, custom_js, layout,
     } = req.body;
     if (!name) return error(res, 'name is required.', 400);
 
@@ -107,6 +107,7 @@ const create = async (req, res) => {
       is_premium: is_premium || false,
       sort_order: sort_order || 0,
       custom_html, custom_css, custom_js,
+      layout: layout || 'classic',
     });
     return success(res, theme, 'Theme created.', 201);
   } catch (err) {
@@ -125,7 +126,7 @@ const update = async (req, res) => {
 
     const {
       name, description, preview_image_url, model_3d_url, color_palette, font_pair, is_premium, sort_order,
-      custom_html, custom_css, custom_js,
+      custom_html, custom_css, custom_js, layout,
     } = req.body;
     await theme.update({
       name: name ?? theme.name,
@@ -139,6 +140,7 @@ const update = async (req, res) => {
       custom_html: custom_html ?? theme.custom_html,
       custom_css: custom_css ?? theme.custom_css,
       custom_js: custom_js ?? theme.custom_js,
+      layout: layout ?? theme.layout,
     });
     return success(res, theme, 'Theme updated.');
   } catch (err) {

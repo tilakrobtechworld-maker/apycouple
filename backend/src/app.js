@@ -15,6 +15,7 @@ const { initSocket } = require('./services/socket.service');
 const { success, error } = require('./utils/apiResponse');
 const { shouldAlterSync } = require('./utils/shouldAlterSync');
 const { toOrigin } = require('./utils/toOrigin');
+const { ensureThemeLayoutColumn, seedTemplates } = require('./utils/seedTemplates');
 
 // ─── Handle uncaught exceptions early ────────────────────────────────────────
 process.on('uncaughtException', (err) => {
@@ -127,6 +128,15 @@ const startServer = async () => {
     const alter = process.env.NODE_ENV === 'development' && shouldAlterSync();
     await sequelize.sync({ alter });
     console.log(alter ? '✅ All models synced (schema altered).' : '✅ All models synced (no schema changes, skipped alter).');
+
+    // Website templates: make sure the layout column exists and the built-in
+    // templates are present. Non-fatal - the site still works without them.
+    try {
+      await ensureThemeLayoutColumn();
+      await seedTemplates();
+    } catch (seedErr) {
+      console.warn('⚠️  Template setup skipped:', seedErr.message);
+    }
 
     server.listen(PORT, () => {
       console.log(`🚀 SaveTheDate server running on port ${PORT} [${process.env.NODE_ENV}]`);

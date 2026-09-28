@@ -53,6 +53,13 @@ const Theme = sequelize.define(
       },
       get: parseJsonField('font_pair'),
     },
+    // Which built-in website layout renders this theme (see
+    // frontend/src/pages/PublicWebsite/templates.js). 'classic' is the original.
+    layout: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      defaultValue: 'classic',
+    },
     model_3d_url: {
       // Optional .glb/.gltf model shown rotating in the public website's hero.
       type: DataTypes.STRING(1000),
