@@ -5,6 +5,7 @@ const { success, error } = require('../utils/apiResponse');
 const { slugify } = require('../utils/generateSlug');
 const { extractImageColors } = require('../utils/extractImageColors');
 const { getFileUrl } = require('../utils/getFileUrl');
+const aiService = require('../services/ai.service');
 
 /**
  * Build a sensible starter layout for a new template from simple fields,
@@ -21,6 +22,11 @@ const buildDefaultElements = ({ heading_font, body_font, text_color, canvas_widt
     {
       id: 'el-heading',
       type: 'text',
+      // `field` tags this element as representing real couple data - when a
+      // couple applies this template, the frontend swaps `content` for
+      // their actual bride_name/groom_name/etc. instead of leaving the
+      // placeholder text for them to edit by hand.
+      field: 'couple_names',
       x: Math.round(w * 0.1), y: Math.round(h * 0.42),
       width: Math.round(w * 0.8), height: Math.round(h * 0.12),
       rotation: 0, zIndex: 1,
@@ -30,6 +36,7 @@ const buildDefaultElements = ({ heading_font, body_font, text_color, canvas_widt
     {
       id: 'el-date',
       type: 'text',
+      field: 'wedding_date',
       x: Math.round(w * 0.1), y: Math.round(h * 0.55),
       width: Math.round(w * 0.8), height: Math.round(h * 0.06),
       rotation: 0, zIndex: 1,
@@ -86,6 +93,67 @@ const uploadImage = async (req, res) => {
 };
 
 /**
+ * Maps Gemini's free-text label (e.g. "Couple Names", "Wedding Date") to
+ * the same `field` tags buildDefaultElements uses, best-effort via keyword
+ * matching, so AI-detected elements also get auto-filled with real couple
+ * data when a couple applies the template. Anything unrecognized (venue,
+ * RSVP note, a quote, ...) is left null and stays as editable placeholder
+ * text - only names/date are reliably available on the couple's profile.
+ */
+const guessFieldFromLabel = (label = '') => {
+  const l = label.toLowerCase();
+  if (l.includes('name')) return 'couple_names';
+  if (l.includes('date')) return 'wedding_date';
+  if (l.includes('hashtag')) return 'wedding_hashtag';
+  return null;
+};
+
+/**
+ * POST /api/card-templates/detect-elements (admin)
+ * Uses Gemini Vision to find where personalized text belongs in an uploaded
+ * design image, and returns them as ready-to-use default_elements (type
+ * 'text') sized to the given canvas - the admin reviews/adjusts them on the
+ * canvas before saving, same as any other element.
+ */
+const detectElements = async (req, res) => {
+  try {
+    const { image_url, canvas_width, canvas_height } = req.body;
+    if (!image_url) return error(res, 'image_url is required.', 400);
+
+    const w = canvas_width || 1080;
+    const h = canvas_height || 1350;
+    const detected = await aiService.detectCardElements(image_url);
+
+    const elements = detected.map((d, i) => ({
+      id: `el-ai-${Date.now()}-${i}`,
+      type: 'text',
+      // Best-effort mapping so a couple applying this template gets their
+      // real details auto-filled in, same as the manually-built templates.
+      field: guessFieldFromLabel(d.label),
+      x: Math.round((d.x || 0) * w),
+      y: Math.round((d.y || 0) * h),
+      width: Math.round((d.width || 0.5) * w),
+      height: Math.round((d.height || 0.08) * h),
+      rotation: 0,
+      zIndex: 10 + i,
+      content: d.content || d.label || 'Text',
+      style: {
+        fontFamily: 'Playfair Display',
+        fontSize: d.fontSize || 32,
+        color: d.color || '#2c2c2c',
+        textAlign: d.textAlign || 'center',
+        fontWeight: 400,
+      },
+    }));
+
+    return success(res, elements, 'Elements detected.');
+  } catch (err) {
+    console.error('detectElements card template error:', err);
+    error(res, err.message || 'Failed to detect elements.', err.statusCode || 500);
+  }
+};
+
+/**
  * GET /api/card-templates
  * Public: active templates only.
  */
@@ -125,6 +193,7 @@ const create = async (req, res) => {
       name, description, preview_image_url, canvas_width, canvas_height,
       background_color, background_image_url, heading_font, body_font, text_color,
       is_premium, sort_order, default_elements,
+      custom_html, custom_css, custom_js,
     } = req.body;
     if (!name) return error(res, 'name is required.', 400);
 
@@ -148,6 +217,7 @@ const create = async (req, res) => {
       default_elements: default_elements || buildDefaultElements({ heading_font, body_font, text_color: resolved.text_color, canvas_width, canvas_height }),
       is_premium: is_premium || false,
       sort_order: sort_order || 0,
+      custom_html, custom_css, custom_js,
     });
     return success(res, template, 'Card template created.', 201);
   } catch (err) {
@@ -167,6 +237,7 @@ const update = async (req, res) => {
     const {
       name, description, preview_image_url, canvas_width, canvas_height,
       background_color, background_image_url, is_premium, sort_order, default_elements,
+      custom_html, custom_css, custom_js,
     } = req.body;
 
     const newImageUrl = background_image_url ?? preview_image_url;
@@ -198,6 +269,9 @@ const update = async (req, res) => {
       is_premium: is_premium ?? template.is_premium,
       sort_order: sort_order ?? template.sort_order,
       default_elements: default_elements ?? template.default_elements,
+      custom_html: custom_html ?? template.custom_html,
+      custom_css: custom_css ?? template.custom_css,
+      custom_js: custom_js ?? template.custom_js,
     });
     return success(res, template, 'Card template updated.');
   } catch (err) {
@@ -236,4 +310,4 @@ const toggleActive = async (req, res) => {
   }
 };
 
-module.exports = { getAll, getAllAdmin, create, update, deleteCardTemplate, toggleActive, uploadImage };
+module.exports = { getAll, getAllAdmin, create, update, deleteCardTemplate, toggleActive, uploadImage, detectElements };

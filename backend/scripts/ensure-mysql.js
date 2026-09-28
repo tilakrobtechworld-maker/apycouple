@@ -9,6 +9,7 @@
  * waits until it's accepting connections before letting dev continue.
  */
 
+require('dotenv').config();
 const net = require('net');
 const { spawn } = require('child_process');
 const path = require('path');
@@ -33,6 +34,11 @@ const isPortOpen = (host, port, timeout = 1000) =>
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function main() {
+  if (process.env.DATABASE_URL) {
+    console.log('✅ DATABASE_URL set - using hosted Postgres, skipping local MySQL check.');
+    return;
+  }
+
   if (await isPortOpen(DB_HOST, DB_PORT)) {
     console.log(`\u2705 MySQL already running on ${DB_HOST}:${DB_PORT}.`);
     return;

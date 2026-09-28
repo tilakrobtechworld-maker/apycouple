@@ -4,6 +4,7 @@ const { Theme } = require('../models');
 const { success, error } = require('../utils/apiResponse');
 const { slugify } = require('../utils/generateSlug');
 const { getFileUrl } = require('../utils/getFileUrl');
+const aiService = require('../services/ai.service');
 
 /**
  * POST /api/themes/upload-image (admin)
@@ -69,11 +70,33 @@ const getAllAdmin = async (req, res) => {
 };
 
 /**
+ * POST /api/themes/generate-ai (admin)
+ * Uses Claude to draft a theme (name, description, colors, fonts) from a
+ * free-text style prompt. Returns the draft only - nothing is saved until
+ * the admin reviews it and submits the normal create form.
+ */
+const generateAI = async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt || !prompt.trim()) return error(res, 'A style prompt is required.', 400);
+
+    const draft = await aiService.generateTheme(prompt.trim());
+    return success(res, draft, 'Theme draft generated.');
+  } catch (err) {
+    console.error('generateAI theme error:', err);
+    error(res, err.message || 'Failed to generate theme.', err.statusCode || 500);
+  }
+};
+
+/**
  * POST /api/admin/themes
  */
 const create = async (req, res) => {
   try {
-    const { name, description, preview_image_url, model_3d_url, color_palette, font_pair, is_premium, sort_order } = req.body;
+    const {
+      name, description, preview_image_url, model_3d_url, color_palette, font_pair, is_premium, sort_order,
+      custom_html, custom_css, custom_js,
+    } = req.body;
     if (!name) return error(res, 'name is required.', 400);
 
     const slug = slugify(name) + '-' + Date.now();
@@ -83,6 +106,7 @@ const create = async (req, res) => {
       font_pair: font_pair || {},
       is_premium: is_premium || false,
       sort_order: sort_order || 0,
+      custom_html, custom_css, custom_js,
     });
     return success(res, theme, 'Theme created.', 201);
   } catch (err) {
@@ -99,7 +123,10 @@ const update = async (req, res) => {
     const theme = await Theme.findByPk(req.params.id);
     if (!theme) return error(res, 'Theme not found.', 404);
 
-    const { name, description, preview_image_url, model_3d_url, color_palette, font_pair, is_premium, sort_order } = req.body;
+    const {
+      name, description, preview_image_url, model_3d_url, color_palette, font_pair, is_premium, sort_order,
+      custom_html, custom_css, custom_js,
+    } = req.body;
     await theme.update({
       name: name ?? theme.name,
       description: description ?? theme.description,
@@ -109,6 +136,9 @@ const update = async (req, res) => {
       font_pair: font_pair ?? theme.font_pair,
       is_premium: is_premium ?? theme.is_premium,
       sort_order: sort_order ?? theme.sort_order,
+      custom_html: custom_html ?? theme.custom_html,
+      custom_css: custom_css ?? theme.custom_css,
+      custom_js: custom_js ?? theme.custom_js,
     });
     return success(res, theme, 'Theme updated.');
   } catch (err) {
@@ -147,5 +177,5 @@ const toggleActive = async (req, res) => {
   }
 };
 
-module.exports = { getAll, getAllAdmin, create, update, deleteTheme, remove: deleteTheme, toggleActive, uploadImage, uploadModel };
+module.exports = { getAll, getAllAdmin, create, update, deleteTheme, remove: deleteTheme, toggleActive, uploadImage, uploadModel, generateAI };
 

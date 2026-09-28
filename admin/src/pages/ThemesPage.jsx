@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Image as ImageIcon, Upload, Loader2, Sparkles } from 'lucide-react';
+import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Image as ImageIcon, Upload, Loader2, Sparkles, Code, ChevronDown, ChevronUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -72,6 +72,9 @@ const themeSchema = z.object({
   body_font: z.string().min(1, 'Required'),
   is_premium: z.boolean().optional(),
   sort_order: z.coerce.number().int().optional(),
+  custom_html: z.string().optional(),
+  custom_css: z.string().optional(),
+  custom_js: z.string().optional(),
 });
 
 function formDefaults(initialData) {
@@ -90,6 +93,9 @@ function formDefaults(initialData) {
         body_font: initialData.font_pair?.body || 'Lato',
         is_premium: initialData.is_premium || false,
         sort_order: initialData.sort_order || 1,
+        custom_html: initialData.custom_html || '',
+        custom_css: initialData.custom_css || '',
+        custom_js: initialData.custom_js || '',
       }
     : {
         name: '', description: '', preview_image_url: '', model_3d_url: '',
@@ -97,6 +103,7 @@ function formDefaults(initialData) {
         accent_color: '#a5b4fc', background_color: '#ffffff', text_color: '#1e293b',
         heading_font: 'Playfair Display', body_font: 'Lato',
         is_premium: false, sort_order: 1,
+        custom_html: '', custom_css: '', custom_js: '',
       };
 }
 
@@ -123,6 +130,7 @@ function ThemeFormModal({ isOpen, onClose, initialData, onSave }) {
   const isEditing = !!initialData?.id;
   const [uploading, setUploading] = useState(false);
   const [modelUploading, setModelUploading] = useState(false);
+  const [showCustomCode, setShowCustomCode] = useState(false);
 
   const { register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(themeSchema),
@@ -135,7 +143,10 @@ function ThemeFormModal({ isOpen, onClose, initialData, onSave }) {
   // theme after the modal has already mounted once would keep showing
   // whichever values were current the first time it opened.
   useEffect(() => {
-    if (isOpen) reset(formDefaults(initialData));
+    if (isOpen) {
+      reset(formDefaults(initialData));
+      setShowCustomCode(!!(initialData?.custom_html || initialData?.custom_css || initialData?.custom_js));
+    }
   }, [isOpen, initialData, reset]);
 
   const previewUrl = watch('preview_image_url');
@@ -198,6 +209,9 @@ function ThemeFormModal({ isOpen, onClose, initialData, onSave }) {
       font_pair: { heading: values.heading_font, body: values.body_font },
       is_premium: values.is_premium,
       sort_order: values.sort_order,
+      custom_html: values.custom_html,
+      custom_css: values.custom_css,
+      custom_js: values.custom_js,
     };
     const ok = await onSave(payload, isEditing ? initialData.id : null);
     if (ok) {
@@ -285,6 +299,63 @@ function ThemeFormModal({ isOpen, onClose, initialData, onSave }) {
           <p className="text-xs text-slate-400 mt-2">Applied to the couple's website when they pick this theme — they can still override colors/fonts afterward in their Website Editor.</p>
         </div>
 
+        {/* Custom Code (advanced) */}
+        <div className="border border-slate-200 rounded-xl overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowCustomCode((v) => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors"
+          >
+            <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+              <Code size={15} /> Advanced: Custom HTML / CSS / JS
+            </span>
+            {showCustomCode ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+          </button>
+          {showCustomCode && (
+            <div className="p-4 space-y-4">
+              <p className="text-xs text-slate-400">
+                Layered on top of the site's built-in sections (hero, RSVP, gallery, etc. stay as they are) —
+                use this for extra styling, animations, or a custom section. Leave any of these blank to skip it.
+                In Custom HTML you can use placeholders: <code className="bg-slate-100 px-1 rounded">{'{{bride_name}}'}</code>{' '}
+                <code className="bg-slate-100 px-1 rounded">{'{{groom_name}}'}</code>{' '}
+                <code className="bg-slate-100 px-1 rounded">{'{{wedding_date}}'}</code>{' '}
+                <code className="bg-slate-100 px-1 rounded">{'{{wedding_hashtag}}'}</code>{' '}
+                <code className="bg-slate-100 px-1 rounded">{'{{cover_photo_url}}'}</code>
+              </p>
+              <div>
+                <label className="text-xs font-medium text-slate-600">Custom HTML (rendered as its own section)</label>
+                <textarea
+                  {...register('custom_html')}
+                  rows={5}
+                  spellCheck={false}
+                  className="admin-input mt-1 font-mono text-xs resize-y"
+                  placeholder={'<div class="my-section">\n  <h2>{{bride_name}} & {{groom_name}}</h2>\n</div>'}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600">Custom CSS</label>
+                <textarea
+                  {...register('custom_css')}
+                  rows={5}
+                  spellCheck={false}
+                  className="admin-input mt-1 font-mono text-xs resize-y"
+                  placeholder={'.my-section h2 {\n  font-size: 3rem;\n}'}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600">Custom JS (runs once the page has loaded)</label>
+                <textarea
+                  {...register('custom_js')}
+                  rows={5}
+                  spellCheck={false}
+                  className="admin-input mt-1 font-mono text-xs resize-y"
+                  placeholder={'console.log("Loaded!");'}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Options */}
         <div className="flex items-center gap-6">
           <label className="flex items-center gap-2 cursor-pointer">
@@ -297,6 +368,60 @@ function ThemeFormModal({ isOpen, onClose, initialData, onSave }) {
           </div>
         </div>
       </form>
+    </Modal>
+  );
+}
+
+// ─── AI Theme Generator Modal ──────────────────────────────────────────────────
+function AIThemeModal({ isOpen, onClose, onGenerated }) {
+  const [prompt, setPrompt] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleGenerate = async () => {
+    if (!prompt.trim()) {
+      toast.error('Describe the theme you want first');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data } = await adminApi.generateThemeAI(prompt.trim());
+      onGenerated(data.data);
+      setPrompt('');
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to generate theme');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Generate Theme with AI"
+      size="md"
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" icon={<Sparkles size={16} />} loading={loading} onClick={handleGenerate}>
+            Generate
+          </Button>
+        </div>
+      }
+    >
+      <label className="text-sm font-medium text-slate-700">Describe the theme</label>
+      <textarea
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        rows={4}
+        className="admin-input mt-1 resize-none"
+        placeholder="e.g. Romantic sunset beach wedding with warm oranges and soft pinks, elegant script font"
+        autoFocus
+      />
+      <p className="text-xs text-slate-400 mt-2">
+        Claude will draft a name, description, color palette, and font pairing. You'll review and can edit everything before saving.
+      </p>
     </Modal>
   );
 }
@@ -378,6 +503,7 @@ export default function ThemesPage() {
   const [deleteId, setDeleteId] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const [showAIModal, setShowAIModal] = useState(false);
 
   const load = async () => {
     try {
@@ -477,6 +603,13 @@ export default function ThemesPage() {
             </Button>
           )}
           <Button
+            variant="secondary"
+            icon={<Sparkles size={16} />}
+            onClick={() => setShowAIModal(true)}
+          >
+            Generate with AI
+          </Button>
+          <Button
             variant="primary"
             icon={<Plus size={16} />}
             onClick={() => { setEditTheme(null); setShowForm(true); }}
@@ -510,6 +643,13 @@ export default function ThemesPage() {
         onClose={() => { setShowForm(false); setEditTheme(null); }}
         initialData={editTheme}
         onSave={handleSave}
+      />
+
+      {/* AI Theme Generator */}
+      <AIThemeModal
+        isOpen={showAIModal}
+        onClose={() => setShowAIModal(false)}
+        onGenerated={(draft) => { setEditTheme(draft); setShowForm(true); }}
       />
 
       {/* Delete Confirm */}

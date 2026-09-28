@@ -152,7 +152,10 @@ const getCard = async (req, res) => {
   try {
     const card = await WeddingCard.findOne({
       where: { custom_slug: req.params.slug },
-      include: [{ model: CardTemplate, as: 'template' }],
+      include: [
+        { model: CardTemplate, as: 'template' },
+        { model: CoupleProfile, as: 'couple', attributes: ['bride_name', 'groom_name', 'wedding_date', 'wedding_hashtag'] },
+      ],
     });
 
     if (!card) return error(res, 'Wedding card not found.', 404);

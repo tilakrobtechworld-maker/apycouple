@@ -17,19 +17,9 @@ services:
         value: 15m
       - key: JWT_REFRESH_EXPIRES_IN
         value: 7d
-      # External MySQL - Render has no managed MySQL, use Aiven/Railway/Clever Cloud etc.
-      - key: DB_HOST
+      # Neon Postgres - paste the pooled connection string in the Render dashboard
+      - key: DATABASE_URL
         sync: false
-      - key: DB_PORT
-        sync: false
-      - key: DB_NAME
-        sync: false
-      - key: DB_USER
-        sync: false
-      - key: DB_PASSWORD
-        sync: false
-      - key: DB_SSL
-        value: "true"
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
@@ -67,6 +57,13 @@ services:
           name: savethedate-admin
           type: web
           property: host
+      # Public URL of the backend (used for one-click email RSVP links)
+      - key: API_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: UNSPLASH_ACCESS_KEY
+        sync: false
 
   - name: savethedate-frontend
     type: web
@@ -74,6 +71,10 @@ services:
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: VITE_API_BASE_URL
         fromService:
@@ -87,6 +88,10 @@ services:
     rootDir: admin
     buildCommand: npm install && npm run build
     staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: VITE_API_BASE_URL
         fromService:

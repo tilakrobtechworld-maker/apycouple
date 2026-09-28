@@ -2,10 +2,23 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { format } from 'date-fns';
 import { cardApi } from '../../services/api';
 import CardCanvasView from '../../components/card/CardCanvasView';
 import { Loader2, Download, FileImage, Heart } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+// Fills {{bride_name}}-style tokens in a card template's custom HTML with
+// the couple's actual data before it's rendered.
+function fillPlaceholders(html, couple) {
+  const values = {
+    bride_name: couple?.bride_name || '',
+    groom_name: couple?.groom_name || '',
+    wedding_date: couple?.wedding_date ? format(new Date(couple.wedding_date), 'MMMM d, yyyy') : '',
+    wedding_hashtag: couple?.wedding_hashtag || '',
+  };
+  return html.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, key) => (key in values ? values[key] : match));
+}
 
 export default function PublicCard() {
   const { slug } = useParams();
@@ -21,6 +34,18 @@ export default function PublicCard() {
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [slug]);
+
+  // Run the template's custom JS (if any) once - a fresh <script> element so
+  // the browser actually executes it (unlike dangerouslySetInnerHTML, which
+  // browsers ignore for <script> tags).
+  useEffect(() => {
+    const js = card?.template?.custom_js;
+    if (!js) return;
+    const script = document.createElement('script');
+    script.textContent = js;
+    document.body.appendChild(script);
+    return () => { document.body.removeChild(script); };
+  }, [card?.template?.custom_js]);
 
   const download = async (format) => {
     if (!exportRef.current) return;
@@ -55,6 +80,8 @@ export default function PublicCard() {
   );
 
   const displayScale = Math.min(1, Math.min(420 / card.canvas_width, 640 / card.canvas_height));
+  const customHtml = card.template?.custom_html ? fillPlaceholders(card.template.custom_html, card.couple) : null;
+  const customCss = card.template?.custom_css;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 to-white flex flex-col items-center justify-center p-6 gap-6">
@@ -66,6 +93,8 @@ export default function PublicCard() {
           backgroundColor={card.background_color}
           backgroundImageUrl={card.background_image_url}
           scale={displayScale}
+          customHtml={customHtml}
+          customCss={customCss}
         />
       </div>
       <div className="flex gap-3">
@@ -87,6 +116,8 @@ export default function PublicCard() {
           backgroundColor={card.background_color}
           backgroundImageUrl={card.background_image_url}
           scale={1}
+          customHtml={customHtml}
+          customCss={customCss}
         />
       </div>
     </div>

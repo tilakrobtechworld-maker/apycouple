@@ -5,6 +5,7 @@ const csv = require('csv-parser');
 const { Readable } = require('stream');
 const { Guest, GuestParty, Event, EventGuestAccess, CoupleProfile } = require('../models');
 const { success, error, paginated } = require('../utils/apiResponse');
+const { likeOp } = require('../utils/dbCompat');
 const { generateRsvpToken } = require('../utils/generateRsvpToken');
 
 /**
@@ -23,9 +24,9 @@ const getAll = async (req, res) => {
     if (party_id) where.party_id = party_id;
     if (search) {
       where[Op.or] = [
-        { first_name: { [Op.like]: `%${search}%` } },
-        { last_name: { [Op.like]: `%${search}%` } },
-        { email: { [Op.like]: `%${search}%` } },
+        { first_name: { [likeOp]: `%${search}%` } },
+        { last_name: { [likeOp]: `%${search}%` } },
+        { email: { [likeOp]: `%${search}%` } },
       ];
     }
 

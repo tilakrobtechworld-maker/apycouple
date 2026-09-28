@@ -5,6 +5,7 @@ const {
   sequelize, User, CoupleProfile, Guest, Event, RsvpSubmission, MediaGallery, Theme, Notification,
 } = require('../models');
 const { success, error, paginated } = require('../utils/apiResponse');
+const { likeOp, q } = require('../utils/dbCompat');
 const emailService = require('../services/email.service');
 
 /**
@@ -27,6 +28,8 @@ const getStats = async (req, res) => {
       group: ['subscription_tier'],
       raw: true,
     });
+    // Postgres returns COUNT() as a string; normalise so both dialects match.
+    subscriptionBreakdown.forEach((row) => { row.count = Number(row.count); });
 
     return success(res, {
       totalCouples,
@@ -59,10 +62,10 @@ const getCouples = async (req, res) => {
     const profileWhere = {};
     if (search) {
       profileWhere[Op.or] = [
-        { bride_name: { [Op.like]: `%${search}%` } },
-        { groom_name: { [Op.like]: `%${search}%` } },
-        { couple_display_name: { [Op.like]: `%${search}%` } },
-        { custom_slug: { [Op.like]: `%${search}%` } },
+        { bride_name: { [likeOp]: `%${search}%` } },
+        { groom_name: { [likeOp]: `%${search}%` } },
+        { couple_display_name: { [likeOp]: `%${search}%` } },
+        { custom_slug: { [likeOp]: `%${search}%` } },
       ];
     }
 
@@ -71,7 +74,7 @@ const getCouples = async (req, res) => {
       attributes: {
         include: [
           [
-            sequelize.literal('(SELECT COUNT(*) FROM guests WHERE guests.couple_id = `CoupleProfile`.`id`)'),
+            sequelize.literal(`(SELECT COUNT(*) FROM guests WHERE guests.couple_id = ${q('CoupleProfile')}.${q('id')})`),
             'guest_count',
           ],
         ],

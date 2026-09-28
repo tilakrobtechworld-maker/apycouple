@@ -10,6 +10,7 @@ router.get('/', cardTemplateController.getAll);
 
 // Admin only
 router.post('/upload-image', protect, requireAdmin, uploadPhoto, cardTemplateController.uploadImage);
+router.post('/detect-elements', protect, requireAdmin, cardTemplateController.detectElements);
 router.post('/', protect, requireAdmin, cardTemplateController.create);
 router.put('/:id', protect, requireAdmin, cardTemplateController.update);
 router.delete('/:id', protect, requireAdmin, cardTemplateController.deleteCardTemplate);

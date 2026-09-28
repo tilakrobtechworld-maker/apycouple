@@ -10,6 +10,7 @@ import DashboardHome from './pages/Dashboard/DashboardHome';
 import GuestsPage from './pages/Dashboard/GuestsPage';
 import EventsPage from './pages/Dashboard/EventsPage';
 import RsvpPage from './pages/Dashboard/RsvpPage';
+import LogisticsPage from './pages/Dashboard/LogisticsPage';
 import MediaPage from './pages/Dashboard/MediaPage';
 import GuestbookPage from './pages/Dashboard/GuestbookPage';
 import RegistryPage from './pages/Dashboard/RegistryPage';
@@ -52,6 +53,7 @@ export default function App() {
             <Route path="guests" element={<GuestsPage />} />
             <Route path="events" element={<EventsPage />} />
             <Route path="rsvp" element={<RsvpPage />} />
+            <Route path="logistics" element={<LogisticsPage />} />
             <Route path="media" element={<MediaPage />} />
             <Route path="guestbook" element={<GuestbookPage />} />
             <Route path="registry" element={<RegistryPage />} />

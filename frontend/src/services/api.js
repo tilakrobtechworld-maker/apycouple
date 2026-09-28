@@ -22,13 +22,23 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 globally
+// Endpoints where a 401 is a normal "wrong credentials" response, not an
+// expired-session signal - must NOT trigger the global redirect below,
+// otherwise the page navigates away before the caller's own error handling
+// (e.g. the login form's toast) ever runs, making auth failures look silent.
+const AUTH_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/refresh'];
+
+// Handle 401 globally (expired/invalid session on an already-authenticated request)
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    const url = err.config?.url || '';
+    const isAuthEndpoint = AUTH_ENDPOINTS.some((endpoint) => url.includes(endpoint));
+    if (err.response?.status === 401 && !isAuthEndpoint) {
       localStorage.removeItem('ac_token');
-      window.location.href = '/login';
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(err);
   }

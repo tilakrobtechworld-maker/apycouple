@@ -56,6 +56,23 @@ const CardTemplate = sequelize.define(
       defaultValue: [],
       get: parseJsonField('default_elements'),
     },
+    // Optional full custom design for this card's face. When set, this
+    // replaces the drag-and-drop `default_elements` rendering entirely on
+    // the couple's public/exported card - full design freedom instead of
+    // the element system. custom_html supports {{bride_name}} style
+    // placeholders for couple data.
+    custom_html: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    custom_css: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    custom_js: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     is_premium: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

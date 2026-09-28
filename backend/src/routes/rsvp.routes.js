@@ -6,6 +6,7 @@ const { protect } = require('../middlewares/auth');
 // Public routes (guest RSVP via token - no login required)
 router.get('/form/:token', rsvpController.getPublicRsvpForm);
 router.post('/submit/:token', rsvpController.submitRsvp);
+router.get('/quick/:token/:eventId/:response', rsvpController.quickRsvp);
 
 // Protected routes (couple dashboard)
 router.use(protect);

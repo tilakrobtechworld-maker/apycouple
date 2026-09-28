@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Rnd } from 'react-rnd';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { format } from 'date-fns';
 import { cardApi, cardTemplateApi } from '../../services/api';
 import CardElementRenderer from '../../components/card/CardElementRenderer';
 import CardCanvasView from '../../components/card/CardCanvasView';
@@ -13,6 +14,32 @@ import toast from 'react-hot-toast';
 
 const DISPLAY_WIDTH = 380;
 const GOOGLE_FONTS = ['Playfair Display', 'Cormorant Garamond', 'Great Vibes', 'Dancing Script', 'Lato', 'Montserrat', 'Open Sans', 'Raleway', 'Inter'];
+
+// Fills {{bride_name}}-style tokens in a card template's custom HTML with
+// the couple's actual data before it's rendered.
+function fillPlaceholders(html, couple) {
+  const values = {
+    bride_name: couple?.bride_name || '',
+    groom_name: couple?.groom_name || '',
+    wedding_date: couple?.wedding_date ? format(new Date(couple.wedding_date), 'MMMM d, yyyy') : '',
+    wedding_hashtag: couple?.wedding_hashtag || '',
+  };
+  return html.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, key) => (key in values ? values[key] : match));
+}
+
+// Real content for a template element's `field` tag (set by the backend's
+// starter layout or AI element detection) - lets a couple's actual name/date
+// drop straight into a template's text elements instead of leaving the
+// placeholder text ("Bride & Groom") for them to edit by hand.
+function fieldContent(field, couple) {
+  if (field === 'couple_names') {
+    if (couple?.bride_name && couple?.groom_name) return `${couple.bride_name} & ${couple.groom_name}`;
+    return couple?.bride_name || couple?.groom_name || null;
+  }
+  if (field === 'wedding_date') return couple?.wedding_date ? format(new Date(couple.wedding_date), 'MMMM d, yyyy') : null;
+  if (field === 'wedding_hashtag') return couple?.wedding_hashtag ? `#${couple.wedding_hashtag}` : null;
+  return null;
+}
 
 const scaleElements = (els, factor) =>
   els.map((el) => ({
@@ -70,8 +97,19 @@ export default function CardCreator() {
 
   const applyTemplate = (template) => {
     if (elements.length > 0 && !confirm('This replaces your current design with the template layout. Continue?')) return;
-    setElements(scaleElements(template.default_elements || [], scale));
-    setCard((c) => ({ ...c, template_id: template.id, background_color: template.background_color, background_image_url: template.background_image_url }));
+    // Elements tagged with `field` (couple_names, wedding_date, ...) get the
+    // couple's real data instead of the template's placeholder text - no
+    // manual editing needed for the standard fields.
+    const filledElements = (template.default_elements || []).map((el) => {
+      if (!el.field) return el;
+      const content = fieldContent(el.field, card?.couple);
+      return content ? { ...el, content } : el;
+    });
+    setElements(scaleElements(filledElements, scale));
+    // `template` here is stale until the next full reload otherwise - it's
+    // what drives whether the custom-HTML preview shows instead of the
+    // drag-and-drop canvas below, so it has to update alongside template_id.
+    setCard((c) => ({ ...c, template_id: template.id, template, background_color: template.background_color, background_image_url: template.background_image_url }));
     setSelectedId(null);
   };
 
@@ -244,27 +282,46 @@ export default function CardCreator() {
         </div>
 
         {/* Canvas */}
-        <div className="flex justify-center lg:order-2">
-          <div
-            className="relative border border-gray-200 rounded-lg shadow-sm overflow-hidden flex-shrink-0"
-            style={{ width: DISPLAY_WIDTH, height: displayHeight, background: card?.background_image_url ? `url(${card.background_image_url}) center/cover` : card?.background_color }}
-            onMouseDown={(e) => { if (e.target === e.currentTarget) setSelectedId(null); }}
-          >
-            {elements.map((el) => (
-              <Rnd
-                key={el.id}
-                size={{ width: el.width, height: el.height }}
-                position={{ x: el.x, y: el.y }}
-                style={{ zIndex: el.zIndex || 0, outline: selectedId === el.id ? '2px solid #f43f5e' : 'none' }}
-                bounds="parent"
-                onDragStop={(e, d) => updateElement(el.id, { x: d.x, y: d.y })}
-                onResizeStop={(e, dir, ref, delta, pos) => updateElement(el.id, { width: parseFloat(ref.style.width), height: parseFloat(ref.style.height), x: pos.x, y: pos.y })}
-                onMouseDown={() => setSelectedId(el.id)}
-              >
-                <CardElementRenderer element={el} />
-              </Rnd>
-            ))}
-          </div>
+        <div className="flex flex-col items-center gap-2 lg:order-2">
+          {card?.template?.custom_html ? (
+            <>
+              <div className="border border-gray-200 rounded-lg shadow-sm overflow-hidden flex-shrink-0">
+                <CardCanvasView
+                  canvasWidth={card.canvas_width}
+                  canvasHeight={card.canvas_height}
+                  scale={scale}
+                  customHtml={fillPlaceholders(card.template.custom_html, card.couple)}
+                  customCss={card.template.custom_css}
+                />
+              </div>
+              <p className="text-xs text-gray-400 max-w-[380px] text-center">This template has a fixed custom design — it isn't drag-and-drop editable. Pick a different template above to design freely.</p>
+            </>
+          ) : (
+            <div
+              className="relative border border-gray-200 rounded-lg shadow-sm overflow-hidden flex-shrink-0"
+              style={{ width: DISPLAY_WIDTH, height: displayHeight, background: card?.background_image_url ? `url(${card.background_image_url}) center/cover` : card?.background_color }}
+              onMouseDown={(e) => { if (e.target === e.currentTarget) setSelectedId(null); }}
+            >
+              {elements.map((el) => (
+                <Rnd
+                  key={el.id}
+                  size={{ width: el.width, height: el.height }}
+                  position={{ x: el.x, y: el.y }}
+                  style={{
+                    zIndex: el.zIndex || 0,
+                    outline: selectedId === el.id ? '2px solid #f43f5e' : 'none',
+                    transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
+                  }}
+                  bounds="parent"
+                  onDragStop={(e, d) => updateElement(el.id, { x: d.x, y: d.y })}
+                  onResizeStop={(e, dir, ref, delta, pos) => updateElement(el.id, { width: parseFloat(ref.style.width), height: parseFloat(ref.style.height), x: pos.x, y: pos.y })}
+                  onMouseDown={() => setSelectedId(el.id)}
+                >
+                  <CardElementRenderer element={el} />
+                </Rnd>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Properties panel */}
@@ -379,6 +436,8 @@ export default function CardCreator() {
             backgroundColor={card.background_color}
             backgroundImageUrl={card.background_image_url}
             scale={1}
+            customHtml={card.template?.custom_html ? fillPlaceholders(card.template.custom_html, card.couple) : null}
+            customCss={card.template?.custom_css}
           />
         )}
       </div>

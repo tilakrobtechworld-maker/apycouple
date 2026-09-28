@@ -9,6 +9,7 @@ const { uploadPhoto, upload3DModel } = require('../middlewares/upload');
 router.get('/', themeController.getAll);
 
 // Admin only
+router.post('/generate-ai', protect, requireAdmin, themeController.generateAI);
 router.post('/upload-image', protect, requireAdmin, uploadPhoto, themeController.uploadImage);
 router.post('/upload-model', protect, requireAdmin, upload3DModel, themeController.uploadModel);
 router.post('/', protect, requireAdmin, themeController.create);

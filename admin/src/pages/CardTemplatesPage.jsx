@@ -4,7 +4,7 @@ import {
   Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Image as ImageIcon, Upload, Loader2, Square,
   Heart, Sparkles, Sparkle, Star, Flower2, Flower, Feather, Leaf, Sun, Moon,
   Music2, Bird, Crown, Gift, Cake, Wine, Camera, PartyPopper, Gem, Flame,
-  Diamond, Ribbon,
+  Diamond, Ribbon, Code, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -32,7 +32,12 @@ const DECOR_ICONS = {
 // card the moment they pick this template, with no other code changes needed.
 const elementSchema = z.object({
   id: z.string(),
-  type: z.enum(['image', 'shape', 'icon']),
+  type: z.enum(['image', 'shape', 'icon', 'text']),
+  // Tags this element as representing real couple data (e.g. "couple_names",
+  // "wedding_date") - set by the backend's starter layout or AI element
+  // detection, read by the couple-side app to auto-fill it on template
+  // selection instead of leaving placeholder text for them to edit by hand.
+  field: z.string().nullable().optional(),
   x: z.coerce.number(),
   y: z.coerce.number(),
   width: z.coerce.number().min(1),
@@ -46,6 +51,10 @@ const elementSchema = z.object({
       shapeType: z.enum(['rectangle', 'circle']).optional(),
       color: z.string().optional(),
       opacity: z.coerce.number().optional(),
+      fontFamily: z.string().optional(),
+      fontSize: z.coerce.number().optional(),
+      fontWeight: z.coerce.number().optional(),
+      textAlign: z.enum(['left', 'center', 'right']).optional(),
     })
     .optional(),
 });
@@ -63,6 +72,9 @@ const templateSchema = z.object({
   is_premium: z.boolean().optional(),
   sort_order: z.coerce.number().int().optional(),
   default_elements: z.array(elementSchema).optional().default([]),
+  custom_html: z.string().optional(),
+  custom_css: z.string().optional(),
+  custom_js: z.string().optional(),
 });
 
 const newImageElement = () => ({
@@ -137,6 +149,9 @@ function formDefaults(initialData) {
         is_premium: initialData.is_premium || false,
         sort_order: initialData.sort_order || 0,
         default_elements: initialData.default_elements || [],
+        custom_html: initialData.custom_html || '',
+        custom_css: initialData.custom_css || '',
+        custom_js: initialData.custom_js || '',
       }
     : {
         name: '', description: '', preview_image_url: '',
@@ -145,6 +160,7 @@ function formDefaults(initialData) {
         canvas_width: 1080, canvas_height: 1350,
         is_premium: false, sort_order: 0,
         default_elements: [],
+        custom_html: '', custom_css: '', custom_js: '',
       };
 }
 
@@ -153,6 +169,8 @@ function TemplateFormModal({ isOpen, onClose, initialData, onSave }) {
   const [uploading, setUploading] = useState(false);
   const [elementUploading, setElementUploading] = useState(null);
   const [selectedIndex, setSelectedIndex] = useState(null);
+  const [showCustomCode, setShowCustomCode] = useState(false);
+  const [detecting, setDetecting] = useState(false);
 
   const { register, handleSubmit, reset, watch, setValue, control, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(templateSchema),
@@ -172,6 +190,7 @@ function TemplateFormModal({ isOpen, onClose, initialData, onSave }) {
     if (isOpen) {
       reset(formDefaults(initialData));
       setSelectedIndex(null);
+      setShowCustomCode(!!(initialData?.custom_html || initialData?.custom_css || initialData?.custom_js));
     }
   }, [isOpen, initialData, reset]);
 
@@ -229,6 +248,26 @@ function TemplateFormModal({ isOpen, onClose, initialData, onSave }) {
   const previewBoxHeight = Math.round(previewBoxWidth * (canvasHeight / canvasWidth));
   const previewScale = previewBoxWidth / canvasWidth;
 
+  const handleDetectElements = async () => {
+    if (!previewUrl) return;
+    setDetecting(true);
+    try {
+      const { data } = await adminApi.detectCardElements({ image_url: previewUrl, canvas_width: canvasWidth, canvas_height: canvasHeight });
+      const found = data.data || [];
+      if (found.length === 0) {
+        toast('No text areas detected — try a different image or add elements manually.');
+      } else {
+        found.forEach((el) => appendElement(el));
+        setSelectedIndex(elementFields.length);
+        toast.success(`${found.length} editable element${found.length !== 1 ? 's' : ''} detected`);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to detect elements');
+    } finally {
+      setDetecting(false);
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -268,6 +307,16 @@ function TemplateFormModal({ isOpen, onClose, initialData, onSave }) {
           <p className="text-xs text-slate-400 mt-2">
             Upload your exported design file directly (recommended — Canva share links don't work as direct images), or paste a direct image URL. This becomes the card's actual background for couples, and its colors below are auto-detected from it — leave it empty to use a plain color background instead.
           </p>
+          {previewUrl && (
+            <div className="mt-2">
+              <Button type="button" variant="secondary" size="sm" icon={<Sparkles size={13} />} loading={detecting} onClick={handleDetectElements}>
+                Detect Editable Elements with AI
+              </Button>
+              <p className="text-xs text-slate-400 mt-1">
+                AI scans the image for spots like names/date/venue and adds them below as text elements couples can edit — review and adjust their position before saving.
+              </p>
+            </div>
+          )}
         </div>
         <div>
           <label className="text-sm font-medium text-slate-700">Description</label>
@@ -338,7 +387,11 @@ function TemplateFormModal({ isOpen, onClose, initialData, onSave }) {
                     bounds="parent"
                     size={{ width: Math.max(1, (el.width || 1) * previewScale), height: Math.max(1, (el.height || 1) * previewScale) }}
                     position={{ x: (el.x || 0) * previewScale, y: (el.y || 0) * previewScale }}
-                    style={{ zIndex: el.zIndex || 1, outline: selectedIndex === i ? '2px solid #6366f1' : 'none' }}
+                    style={{
+                      zIndex: el.zIndex || 1,
+                      outline: selectedIndex === i ? '2px solid #6366f1' : 'none',
+                      transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
+                    }}
                     onDragStart={() => setSelectedIndex(i)}
                     onDragStop={(e, d) => {
                       setValue(`default_elements.${i}.x`, Math.round(d.x / previewScale), { shouldDirty: true });
@@ -361,6 +414,23 @@ function TemplateFormModal({ isOpen, onClose, initialData, onSave }) {
                         const Icon = DECOR_ICONS[el.content] || Sparkles;
                         return <Icon className="w-full h-full" color={el.style?.color || '#c0392b'} style={{ opacity: el.style?.opacity ?? 1 }} />;
                       })()
+                    ) : el.type === 'text' ? (
+                      <div
+                        className="w-full h-full flex items-center overflow-hidden"
+                        style={{
+                          justifyContent: el.style?.textAlign === 'left' ? 'flex-start' : el.style?.textAlign === 'right' ? 'flex-end' : 'center',
+                          fontFamily: el.style?.fontFamily || 'inherit',
+                          fontSize: (el.style?.fontSize || 16) * previewScale,
+                          fontWeight: el.style?.fontWeight || 400,
+                          color: el.style?.color || '#1f2937',
+                          textAlign: el.style?.textAlign || 'center',
+                          lineHeight: 1.2,
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        {el.content || ''}
+                      </div>
                     ) : (
                       <div
                         className="w-full h-full"
@@ -384,7 +454,7 @@ function TemplateFormModal({ isOpen, onClose, initialData, onSave }) {
               <div key={elementFields[index].id} className="border border-indigo-200 bg-indigo-50/40 rounded-lg p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                    {type === 'image' ? 'Image' : type === 'icon' ? `Icon (${watch(`default_elements.${index}.content`)})` : 'Shape'} — selected
+                    {type === 'image' ? 'Image' : type === 'icon' ? `Icon (${watch(`default_elements.${index}.content`)})` : type === 'text' ? 'Text' : 'Shape'} — selected
                   </span>
                   <button type="button" onClick={() => { removeElement(index); setSelectedIndex(null); }} className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Remove element">
                     <Trash2 size={14} />
@@ -406,6 +476,35 @@ function TemplateFormModal({ isOpen, onClose, initialData, onSave }) {
                 {type === 'icon' && (
                   <ColorField label="Icon Color" watch={watch} setValue={setValue} name={`default_elements.${index}.style.color`} />
                 )}
+                {type === 'text' && (
+                  <>
+                    <div>
+                      <label className="text-xs font-medium text-slate-600">Text</label>
+                      <textarea {...register(`default_elements.${index}.content`)} rows={2} className="admin-input text-xs mt-1 resize-none" />
+                    </div>
+                    {watch(`default_elements.${index}.field`) && (
+                      <p className="text-[11px] text-indigo-500">
+                        Auto-filled with the couple's {watch(`default_elements.${index}.field`) === 'couple_names' ? 'names' : watch(`default_elements.${index}.field`) === 'wedding_date' ? 'wedding date' : 'hashtag'} when they pick this template.
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input label="Font Size (px)" type="number" {...register(`default_elements.${index}.style.fontSize`)} />
+                      <ColorField label="Text Color" watch={watch} setValue={setValue} name={`default_elements.${index}.style.color`} />
+                    </div>
+                    <div className="flex gap-2">
+                      {['left', 'center', 'right'].map((a) => (
+                        <button
+                          key={a}
+                          type="button"
+                          onClick={() => setValue(`default_elements.${index}.style.textAlign`, a, { shouldDirty: true })}
+                          className={`flex-1 py-1.5 text-xs rounded-lg border capitalize ${watch(`default_elements.${index}.style.textAlign`) === a ? 'bg-indigo-50 border-indigo-300 text-indigo-600' : 'border-slate-200 text-slate-500'}`}
+                        >
+                          {a}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
 
                 <div className="grid grid-cols-2 gap-2">
                   <Input label="Rotation (°)" type="number" {...register(`default_elements.${index}.rotation`)} />
@@ -417,6 +516,62 @@ function TemplateFormModal({ isOpen, onClose, initialData, onSave }) {
 
           {elementFields.length === 0 && (
             <p className="text-xs text-slate-400">No extra elements — the couple will start with just the default heading/date text for this template.</p>
+          )}
+        </div>
+
+        {/* Custom Code (advanced) */}
+        <div className="border border-slate-200 rounded-xl overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowCustomCode((v) => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors"
+          >
+            <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+              <Code size={15} /> Advanced: Custom HTML / CSS / JS
+            </span>
+            {showCustomCode ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+          </button>
+          {showCustomCode && (
+            <div className="p-4 space-y-4">
+              <p className="text-xs text-slate-400">
+                When filled in, this fully replaces the Design Elements above on the couple's card — build the entire
+                card face by hand for complete design freedom. Leave blank to keep using Design Elements instead.
+                In Custom HTML you can use placeholders: <code className="bg-slate-100 px-1 rounded">{'{{bride_name}}'}</code>{' '}
+                <code className="bg-slate-100 px-1 rounded">{'{{groom_name}}'}</code>{' '}
+                <code className="bg-slate-100 px-1 rounded">{'{{wedding_date}}'}</code>{' '}
+                <code className="bg-slate-100 px-1 rounded">{'{{wedding_hashtag}}'}</code>
+              </p>
+              <div>
+                <label className="text-xs font-medium text-slate-600">Custom HTML (the entire card face)</label>
+                <textarea
+                  {...register('custom_html')}
+                  rows={6}
+                  spellCheck={false}
+                  className="admin-input mt-1 font-mono text-xs resize-y"
+                  placeholder={'<div class="card">\n  <h1>{{bride_name}} & {{groom_name}}</h1>\n  <p>{{wedding_date}}</p>\n</div>'}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600">Custom CSS</label>
+                <textarea
+                  {...register('custom_css')}
+                  rows={6}
+                  spellCheck={false}
+                  className="admin-input mt-1 font-mono text-xs resize-y"
+                  placeholder={'.card {\n  width: 100%;\n  height: 100%;\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n}'}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600">Custom JS (runs once the card has rendered)</label>
+                <textarea
+                  {...register('custom_js')}
+                  rows={4}
+                  spellCheck={false}
+                  className="admin-input mt-1 font-mono text-xs resize-y"
+                  placeholder={'console.log("Card loaded!");'}
+                />
+              </div>
+            </div>
           )}
         </div>
 
@@ -515,6 +670,9 @@ export default function CardTemplatesPage() {
       canvas_height: values.canvas_height,
       is_premium: values.is_premium,
       sort_order: values.sort_order,
+      custom_html: values.custom_html,
+      custom_css: values.custom_css,
+      custom_js: values.custom_js,
     };
     if (id) {
       // Editing: always send the current elements, even if the admin cleared

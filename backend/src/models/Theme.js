@@ -58,6 +58,23 @@ const Theme = sequelize.define(
       type: DataTypes.STRING(1000),
       allowNull: true,
     },
+    // Optional advanced styling/behavior layered on top of the site's fixed
+    // sections (hero, RSVP, gallery, etc. stay as-is). custom_css is injected
+    // as a <style> tag, custom_js runs once the page has mounted, and
+    // custom_html renders as its own section supporting {{bride_name}} style
+    // placeholders for couple data.
+    custom_html: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    custom_css: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    custom_js: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     is_premium: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

@@ -7,6 +7,13 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
 const TABS = ['Responses', 'Questions', 'Send Invites'];
+const QUESTION_TYPE_LABELS = {
+  text: 'Text Box',
+  select: 'Select Box',
+  radio: 'Radio Box',
+  checkbox: 'Checkbox',
+  number: 'Number Box',
+};
 
 function QuestionForm({ question, events, onClose, onSaved }) {
   const { register, handleSubmit, reset, watch } = useForm({
@@ -40,7 +47,7 @@ function QuestionForm({ question, events, onClose, onSaved }) {
           <div>
             <label className="label">Question Type</label>
             <select {...register('question_type')} className="input-field">
-              {['text','select','radio','checkbox','number'].map(t => <option key={t} value={t}>{t}</option>)}
+              {Object.entries(QUESTION_TYPE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </div>
           {['select','radio','checkbox'].includes(qtype) && (
@@ -85,6 +92,7 @@ export default function RsvpPage() {
   const [sendingInvites, setSendingInvites] = useState(false);
   const [selectedGuests, setSelectedGuests] = useState([]);
   const [inviteMethod, setInviteMethod] = useState('email');
+  const [inviteEventId, setInviteEventId] = useState('');
 
   useEffect(() => {
     Promise.all([rsvpApi.getStats(), rsvpApi.getResponses(), rsvpApi.getQuestions(), eventApi.getAll(), guestApi.getAll({ limit: 500 })])
@@ -108,13 +116,13 @@ export default function RsvpPage() {
     if (selectedGuests.length === 0) { toast.error('Select at least one guest'); return; }
     setSendingInvites(true);
     try {
-      await rsvpApi.sendInvites({ guestIds: selectedGuests, method: inviteMethod });
+      await rsvpApi.sendInvites({ guestIds: selectedGuests, method: inviteMethod, eventId: inviteEventId || undefined });
       toast.success(`Invitations sent to ${selectedGuests.length} guests!`);
       setSelectedGuests([]);
     } catch { toast.error('Failed to send invitations'); } finally { setSendingInvites(false); }
   };
 
-  const chartData = stats.map(s => ({ name: s.eventTitle?.substring(0, 12) || 'Event', attending: s.attending || 0, declined: s.declined || 0, pending: s.pending || 0 }));
+  const chartData = stats.map(s => ({ name: s.eventTitle?.substring(0, 12) || 'Event', attending: s.attending || 0, maybe: s.maybe || 0, declined: s.declined || 0, pending: s.pending || 0 }));
   const filteredResponses = responses.filter(r => (!filterEvent || r.event_id === filterEvent) && (!filterStatus || r.attending === filterStatus));
 
   if (loading) return <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary-400" /></div>;
@@ -135,12 +143,13 @@ export default function RsvpPage() {
         <div className="space-y-6">
           {/* Stats per event */}
           {stats.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {stats.map(s => (
                 <div key={s.eventId} className="card p-4">
-                  <p className="font-medium text-gray-800 text-sm mb-3">{s.eventTitle}</p>
-                  <div className="grid grid-cols-3 gap-2 text-center">
+                  <p className="font-medium text-gray-800 text-sm mb-3">{s.eventTitle} <span className="text-gray-400 font-normal">({s.total} invited)</span></p>
+                  <div className="grid grid-cols-4 gap-2 text-center">
                     <div><p className="text-xl font-bold text-green-600">{s.attending || 0}</p><p className="text-xs text-gray-400">Going</p></div>
+                    <div><p className="text-xl font-bold text-yellow-500">{s.maybe || 0}</p><p className="text-xs text-gray-400">Maybe</p></div>
                     <div><p className="text-xl font-bold text-red-500">{s.declined || 0}</p><p className="text-xs text-gray-400">Declined</p></div>
                     <div><p className="text-xl font-bold text-gray-400">{s.pending || 0}</p><p className="text-xs text-gray-400">Pending</p></div>
                   </div>
@@ -159,6 +168,7 @@ export default function RsvpPage() {
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
                   <Bar dataKey="attending" fill="#22c55e" name="Attending" radius={[4,4,0,0]} />
+                  <Bar dataKey="maybe" fill="#eab308" name="Maybe" radius={[4,4,0,0]} />
                   <Bar dataKey="declined" fill="#f43f5e" name="Declined" radius={[4,4,0,0]} />
                   <Bar dataKey="pending" fill="#d1d5db" name="Pending" radius={[4,4,0,0]} />
                 </BarChart>
@@ -187,6 +197,9 @@ export default function RsvpPage() {
                     <th className="text-left px-4 py-3 text-gray-500 font-medium">Guest</th>
                     <th className="text-left px-4 py-3 text-gray-500 font-medium">Event</th>
                     <th className="text-left px-4 py-3 text-gray-500 font-medium">Status</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium hidden md:table-cell">Party Size</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium hidden lg:table-cell">Arrival</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium hidden lg:table-cell">Travel</th>
                     <th className="text-left px-4 py-3 text-gray-500 font-medium hidden md:table-cell">Meal</th>
                     <th className="text-left px-4 py-3 text-gray-500 font-medium hidden lg:table-cell">Song Request</th>
                     <th className="text-left px-4 py-3 text-gray-500 font-medium hidden lg:table-cell">Submitted</th>
@@ -194,14 +207,17 @@ export default function RsvpPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {filteredResponses.length === 0 ? (
-                    <tr><td colSpan={6} className="text-center py-10 text-gray-400">No responses yet</td></tr>
+                    <tr><td colSpan={9} className="text-center py-10 text-gray-400">No responses yet</td></tr>
                   ) : filteredResponses.map(r => (
                     <tr key={r.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-900">{r.Guest?.first_name} {r.Guest?.last_name}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{r.Event?.title}</td>
+                      <td className="px-4 py-3 font-medium text-gray-900">{r.guest?.first_name} {r.guest?.last_name}</td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">{r.event?.title}</td>
                       <td className="px-4 py-3">
                         <span className={`badge ${r.attending === 'yes' ? 'badge-green' : r.attending === 'no' ? 'badge-red' : 'badge-yellow'}`}>{r.attending}</span>
                       </td>
+                      <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{r.guest?.party_size || 1}</td>
+                      <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">{r.guest?.arrival_datetime ? format(new Date(r.guest.arrival_datetime), 'PPp') : '—'}</td>
+                      <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">{r.guest?.travel_mode ? `${r.guest.travel_mode}${r.guest.travel_details ? ` — ${r.guest.travel_details}` : ''}` : '—'}</td>
                       <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{r.meal_choice || '—'}</td>
                       <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">{r.song_request || '—'}</td>
                       <td className="px-4 py-3 text-gray-400 text-xs hidden lg:table-cell">{r.submitted_at ? format(new Date(r.submitted_at), 'PP') : '—'}</td>
@@ -233,7 +249,7 @@ export default function RsvpPage() {
                   <div>
                     <p className="font-medium text-gray-800">{q.question_text}</p>
                     <div className="flex gap-2 mt-1">
-                      <span className="badge badge-gray text-xs">{q.question_type}</span>
+                      <span className="badge badge-gray text-xs">{QUESTION_TYPE_LABELS[q.question_type] || q.question_type}</span>
                       {q.is_required && <span className="badge badge-red text-xs">Required</span>}
                       {q.event_id && <span className="badge badge-blue text-xs">{events.find(e => e.id === q.event_id)?.title || 'Specific Event'}</span>}
                     </div>
@@ -263,9 +279,27 @@ export default function RsvpPage() {
                 </label>
               ))}
             </div>
+            <div className="mb-4">
+              <label className="label">Invite to Event</label>
+              <select
+                value={inviteEventId}
+                onChange={e => setInviteEventId(e.target.value)}
+                className="input-field"
+              >
+                <option value="">All Events (generic invitation)</option>
+                {events.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
+              </select>
+              {inviteEventId && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Selected guests will be given access to this event and invited specifically to it.
+                </p>
+              )}
+            </div>
             <p className="text-sm text-gray-500 mb-4">Select guests to send {inviteMethod} invitations with their personal RSVP link:</p>
             <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-xl divide-y">
-              {guests.map(g => (
+              {guests.length === 0 ? (
+                <p className="text-center py-8 text-sm text-gray-400">No guests yet.</p>
+              ) : guests.map(g => (
                 <label key={g.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer">
                   <input type="checkbox" checked={selectedGuests.includes(g.id)} onChange={e => setSelectedGuests(e.target.checked ? [...selectedGuests, g.id] : selectedGuests.filter(id => id !== g.id))} />
                   <span className="text-sm">{g.first_name} {g.last_name}</span>

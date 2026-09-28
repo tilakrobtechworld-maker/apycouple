@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import {
   LayoutDashboard, Users, Calendar, CheckSquare, Camera, BookOpen,
-  Gift, Map, Layout, Sparkles, Bell, Settings, LogOut, Heart, Menu, X, ChevronRight
+  Gift, Map, Layout, Sparkles, Bell, Settings, LogOut, Heart, Menu, X, ChevronRight, Plane
 } from 'lucide-react';
 
 const navItems = [
@@ -12,6 +12,7 @@ const navItems = [
   { to: '/dashboard/guests', icon: Users, label: 'Guest List' },
   { to: '/dashboard/events', icon: Calendar, label: 'Events' },
   { to: '/dashboard/rsvp', icon: CheckSquare, label: 'RSVPs' },
+  { to: '/dashboard/logistics', icon: Plane, label: 'Logistics' },
   { to: '/dashboard/media', icon: Camera, label: 'Photo Gallery' },
   { to: '/dashboard/guestbook', icon: BookOpen, label: 'Guestbook' },
   { to: '/dashboard/registry', icon: Gift, label: 'Registry' },

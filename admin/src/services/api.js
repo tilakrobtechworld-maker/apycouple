@@ -32,14 +32,24 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Endpoints where a 401 is a normal "wrong credentials" response, not an
+// expired-session signal - must NOT trigger the global redirect below,
+// otherwise the page navigates away before the caller's own error handling
+// (e.g. the login form's toast) ever runs, making auth failures look silent.
+const AUTH_ENDPOINTS = ['/auth/admin/login', '/auth/login', '/auth/register', '/auth/refresh'];
+
 // ─── Response Interceptor: Handle 401 ─────────────────────────────────────────
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const url = error.config?.url || '';
+    const isAuthEndpoint = AUTH_ENDPOINTS.some((endpoint) => url.includes(endpoint));
+    if (error.response?.status === 401 && !isAuthEndpoint) {
       localStorage.removeItem('admin_token');
       localStorage.removeItem('admin_user');
-      window.location.href = '/admin/login';
+      if (window.location.pathname !== '/admin/login') {
+        window.location.href = '/admin/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -99,6 +109,9 @@ export const adminApi = {
   uploadThemeModel: (formData) =>
     api.post('/themes/upload-model', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
 
+  generateThemeAI: (prompt) =>
+    api.post('/themes/generate-ai', { prompt }),
+
   // ── 3D Scene Templates ───────────────────────────────────────────────────────
   getSceneTemplates: () =>
     api.get('/admin/scene-templates'),
@@ -136,6 +149,9 @@ export const adminApi = {
 
   uploadCardTemplateImage: (formData) =>
     api.post('/card-templates/upload-image', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+
+  detectCardElements: (data) =>
+    api.post('/card-templates/detect-elements', data),
 
   // ── Media Moderation ──────────────────────────────────────────────────────
   getMediaQueue: (params) =>

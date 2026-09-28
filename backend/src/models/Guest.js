@@ -3,6 +3,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
+const { parseJsonField } = require('../utils/jsonField');
 
 const Guest = sequelize.define(
   'Guest',
@@ -80,6 +81,69 @@ const Guest = sequelize.define(
       type: DataTypes.ENUM('email', 'sms', 'link', 'manual'),
       allowNull: false,
       defaultValue: 'manual',
+    },
+    arrival_datetime: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    travel_mode: {
+      type: DataTypes.ENUM('flight', 'train', 'ship', 'other'),
+      allowNull: true,
+    },
+    // Flight/train number for the arrival leg (kept as `travel_details` for
+    // backwards compatibility with already-submitted RSVPs).
+    travel_details: {
+      type: DataTypes.STRING(300),
+      allowNull: true,
+    },
+    departure_datetime: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    arrival_ticket_details: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
+    departure_ticket_details: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
+    arrival_location: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+    },
+    departure_location: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+    },
+    departure_travel_number: {
+      type: DataTypes.STRING(300),
+      allowNull: true,
+    },
+    arrival_terminal: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    departure_terminal: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    luggage_count: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    party_size: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 1,
+    },
+    // Names of the other people in the party (not including this guest),
+    // one entry per extra headcount in party_size.
+    party_member_names: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: [],
+      get: parseJsonField('party_member_names'),
     },
   },
   {

@@ -11,6 +11,20 @@ import toast from 'react-hot-toast';
 // theme actually has a 3D model, not on every couple's page load.
 const Hero3DModel = lazy(() => import('../../components/public/Hero3DModel'));
 
+// Fills {{bride_name}}-style tokens in a theme's custom HTML with the
+// couple's actual data before it's rendered.
+function fillPlaceholders(html, couple) {
+  const values = {
+    bride_name: couple.bride_name || '',
+    groom_name: couple.groom_name || '',
+    couple_display_name: couple.couple_display_name || `${couple.bride_name || ''} & ${couple.groom_name || ''}`,
+    wedding_date: couple.wedding_date ? format(new Date(couple.wedding_date), 'MMMM d, yyyy') : '',
+    wedding_hashtag: couple.wedding_hashtag || '',
+    cover_photo_url: couple.cover_photo_url || '',
+  };
+  return html.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, key) => (key in values ? values[key] : match));
+}
+
 // Ambient floating hearts, themed off the couple's own colors - fixed to the
 // viewport (not the page's scroll height) so it reads as one continuous
 // effect no matter where the guest has scrolled to, sitting above section
@@ -168,6 +182,18 @@ export default function CoupleWebsite() {
     }).finally(() => setLoading(false));
   }, [slug]);
 
+  // Run the theme's custom JS (if any) once the page data is in - a fresh
+  // <script> element so the browser actually executes it (unlike a script
+  // tag inserted via dangerouslySetInnerHTML, which browsers ignore).
+  useEffect(() => {
+    const js = data?.couple?.theme?.custom_js;
+    if (!js) return;
+    const script = document.createElement('script');
+    script.textContent = js;
+    document.body.appendChild(script);
+    return () => { document.body.removeChild(script); };
+  }, [data?.couple?.theme?.custom_js]);
+
   const submitGuestbook = async (formData) => {
     try {
       await guestbookApi.create(slug, formData);
@@ -219,8 +245,12 @@ export default function CoupleWebsite() {
 
   const navLinks = [{ id: 'story', label: 'Our Story' }, { id: 'events', label: 'Events' }, { id: 'travel', label: 'Travel' }, { id: 'registry', label: 'Registry' }, { id: 'gallery', label: 'Gallery' }, { id: 'guestbook', label: 'Guestbook' }];
 
+  const customHtml = couple.theme?.custom_html ? fillPlaceholders(couple.theme.custom_html, couple) : null;
+  const customCss = couple.theme?.custom_css;
+
   return (
     <div style={cssVars} className="min-h-screen">
+      {customCss && <style>{customCss}</style>}
       <FloatingDecor colors={colors} />
 
       {/* Sticky Nav */}
@@ -267,6 +297,9 @@ export default function CoupleWebsite() {
           </a>
         </div>
       </section>
+
+      {/* Theme's custom section, if the admin added one */}
+      {customHtml && <div dangerouslySetInnerHTML={{ __html: customHtml }} />}
 
       {/* Countdown */}
       {couple.wedding_date && new Date(couple.wedding_date) > new Date() && <CountdownTimer date={couple.wedding_date} />}

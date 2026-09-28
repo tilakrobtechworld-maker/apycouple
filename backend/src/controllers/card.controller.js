@@ -24,7 +24,12 @@ const getMine = async (req, res) => {
       });
     }
 
-    return success(res, card, 'Wedding card retrieved.');
+    // Couple data for the template's custom-HTML placeholders - already on
+    // req.user from the auth middleware, no extra query needed.
+    const { bride_name, groom_name, wedding_date, wedding_hashtag } = req.user.coupleProfile;
+    const payload = { ...card.toJSON(), couple: { bride_name, groom_name, wedding_date, wedding_hashtag } };
+
+    return success(res, payload, 'Wedding card retrieved.');
   } catch (err) {
     console.error('getMine card error:', err);
     error(res, 'Failed to retrieve wedding card.', 500);
