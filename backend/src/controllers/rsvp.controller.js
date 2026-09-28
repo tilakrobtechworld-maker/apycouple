@@ -116,9 +116,9 @@ const submitRsvp = async (req, res) => {
     // travels once and attends multiple functions on the same trip.
     const { responses, arrival_datetime, travel_mode, travel_details, party_size, party_member_names, plus_one_name, luggage_count } = req.body;
 
-    if (!responses || !Array.isArray(responses) || responses.length === 0) {
-      return error(res, 'responses array is required.', 400);
-    }
+    // A guest with no events assigned yet can still submit their travel details,
+    // so an empty responses array is fine as long as something else is sent.
+    const eventResponses = Array.isArray(responses) ? responses : [];
 
     const guest = await Guest.findOne({ where: { rsvp_token: token } });
     if (!guest) return error(res, 'Invalid RSVP link.', 404);
@@ -142,10 +142,13 @@ const submitRsvp = async (req, res) => {
     if (Array.isArray(party_member_names)) {
       guestUpdates.party_member_names = party_member_names.filter((n) => n && n.trim());
     }
+    if (eventResponses.length === 0 && Object.keys(guestUpdates).length === 0) {
+      return error(res, 'Nothing to submit.', 400);
+    }
     if (Object.keys(guestUpdates).length) await guest.update(guestUpdates);
 
     const created = [];
-    for (const resp of responses) {
+    for (const resp of eventResponses) {
       const { event_id, attending, meal_choice, dietary_note, song_request, custom_answers } = resp;
       if (!event_id || !attending) continue;
 
