@@ -10,8 +10,8 @@ const { emitNewMessage } = require('../services/socket.service');
  */
 const getApproved = async (req, res) => {
   try {
-    const { slug, couple_id } = req.query;
-    let coupleId = couple_id;
+    const slug = req.query.slug || req.params.coupleSlug;
+    let coupleId = req.query.couple_id;
 
     if (!coupleId && slug) {
       const profile = await CoupleProfile.findOne({ where: { custom_slug: slug } });
@@ -77,10 +77,19 @@ const getPending = async (req, res) => {
  */
 const create = async (req, res) => {
   try {
-    const { couple_id, guest_rsvp_token, author_name, message_text, entry_type, media_url } = req.body;
+    const { guest_rsvp_token, author_name, message_text, entry_type, media_url } = req.body;
 
-    if (!couple_id || !author_name) {
-      return error(res, 'couple_id and author_name are required.', 400);
+    // The public website posts to /guestbook/:coupleSlug (no id in the body);
+    // API clients may still send couple_id directly.
+    let couple_id = req.body.couple_id;
+    if (!couple_id && req.params.coupleSlug) {
+      const profile = await CoupleProfile.findOne({ where: { custom_slug: req.params.coupleSlug } });
+      if (!profile) return error(res, 'Couple not found.', 404);
+      couple_id = profile.id;
+    }
+
+    if (!couple_id || !author_name || !author_name.trim()) {
+      return error(res, 'A couple and author_name are required.', 400);
     }
 
     let guestId = null;
@@ -92,8 +101,8 @@ const create = async (req, res) => {
     const entry = await GuestbookEntry.create({
       couple_id,
       guest_id: guestId,
-      author_name,
-      message_text: message_text || null,
+      author_name: author_name.trim().slice(0, 150),
+      message_text: message_text ? String(message_text).slice(0, 2000) : null,
       media_url: media_url || null,
       entry_type: entry_type || 'text',
       is_approved: false, // Requires moderation
