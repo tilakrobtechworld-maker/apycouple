@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { rsvpApi, eventApi, guestApi } from '../../services/api';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Plus, Trash2, Send, X, Loader2, Mail } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { CheckCircle, XCircle, Clock, Plus, Trash2, Send, X, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -93,8 +93,6 @@ export default function RsvpPage() {
   const [selectedGuests, setSelectedGuests] = useState([]);
   const [inviteMethod, setInviteMethod] = useState('email');
   const [inviteEventId, setInviteEventId] = useState('');
-  const [selectedLogisticsGuests, setSelectedLogisticsGuests] = useState([]);
-  const [sendingLogistics, setSendingLogistics] = useState(false);
 
   useEffect(() => {
     Promise.all([rsvpApi.getStats(), rsvpApi.getResponses(), rsvpApi.getQuestions(), eventApi.getAll(), guestApi.getAll({ limit: 500 })])
@@ -124,54 +122,8 @@ export default function RsvpPage() {
     } catch { toast.error('Failed to send invitations'); } finally { setSendingInvites(false); }
   };
 
-  const sendLogisticsEmails = async () => {
-    if (selectedLogisticsGuests.length === 0) { toast.error('Select at least one guest'); return; }
-    setSendingLogistics(true);
-    try {
-      await rsvpApi.sendLogisticsEmail({ guestIds: selectedLogisticsGuests });
-      toast.success(`Logistics email sent to ${selectedLogisticsGuests.length} guest(s)!`);
-      setSelectedLogisticsGuests([]);
-    } catch { toast.error('Failed to send logistics emails'); } finally { setSendingLogistics(false); }
-  };
-
-  const toggleLogisticsGuest = (guestId) => {
-    setSelectedLogisticsGuests(prev =>
-      prev.includes(guestId) ? prev.filter(id => id !== guestId) : [...prev, guestId]
-    );
-  };
-
   const chartData = stats.map(s => ({ name: s.eventTitle?.substring(0, 12) || 'Event', attending: s.attending || 0, maybe: s.maybe || 0, declined: s.declined || 0, pending: s.pending || 0 }));
-
-  // Filter responses
-  const filteredResponses = responses.filter(r =>
-    (!filterEvent || r.event_id === filterEvent) &&
-    (!filterStatus || r.attending === filterStatus)
-  );
-
-  // Group by guest — one row per guest with all their events
-  const groupedByGuest = filteredResponses.reduce((acc, r) => {
-    const gid = r.guest?.id || r.guest_id;
-    if (!gid) return acc;
-    if (!acc[gid]) {
-      acc[gid] = {
-        guestId: gid,
-        guest: r.guest,
-        events: [],
-        latestSubmitted: r.submitted_at,
-      };
-    }
-    acc[gid].events.push({
-      event: r.event,
-      attending: r.attending,
-      meal: r.meal_choice,
-      song: r.song_request,
-    });
-    if (r.submitted_at && r.submitted_at > acc[gid].latestSubmitted) {
-      acc[gid].latestSubmitted = r.submitted_at;
-    }
-    return acc;
-  }, {});
-  const groupedRows = Object.values(groupedByGuest);
+  const filteredResponses = responses.filter(r => (!filterEvent || r.event_id === filterEvent) && (!filterStatus || r.attending === filterStatus));
 
   if (loading) return <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary-400" /></div>;
 
@@ -224,153 +176,50 @@ export default function RsvpPage() {
             </div>
           )}
 
-          {/* Filters & Grouped Table */}
+          {/* Filters & Table */}
           <div className="card overflow-hidden">
-            {/* Filter bar */}
-            <div className="p-4 border-b border-gray-100 flex flex-wrap gap-3 items-center justify-between">
-              <div className="flex gap-3 flex-1">
-                <select value={filterEvent} onChange={e => setFilterEvent(e.target.value)} className="input-field flex-1">
-                  <option value="">All Events</option>
-                  {events.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
-                </select>
-                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-field w-36">
-                  <option value="">All Status</option>
-                  <option value="yes">Attending</option>
-                  <option value="no">Declined</option>
-                  <option value="maybe">Maybe</option>
-                </select>
-              </div>
-              {selectedLogisticsGuests.length > 0 && (
-                <button
-                  onClick={sendLogisticsEmails}
-                  disabled={sendingLogistics}
-                  className="btn-primary flex items-center gap-2 py-2 px-4 text-sm"
-                >
-                  {sendingLogistics ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                  Logistics Email ({selectedLogisticsGuests.length})
-                </button>
-              )}
+            <div className="p-4 border-b border-gray-100 flex gap-3">
+              <select value={filterEvent} onChange={e => setFilterEvent(e.target.value)} className="input-field flex-1">
+                <option value="">All Events</option>
+                {events.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
+              </select>
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-field w-36">
+                <option value="">All Status</option>
+                <option value="yes">Attending</option>
+                <option value="no">Declined</option>
+                <option value="maybe">Maybe</option>
+              </select>
             </div>
-
-            {/* Table */}
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    {/* Select-all checkbox */}
-                    <th className="px-4 py-3 w-10">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 rounded"
-                        title="Select all for logistics email"
-                        checked={groupedRows.length > 0 && selectedLogisticsGuests.length === groupedRows.length}
-                        onChange={e =>
-                          setSelectedLogisticsGuests(e.target.checked ? groupedRows.map(g => g.guestId) : [])
-                        }
-                      />
-                    </th>
                     <th className="text-left px-4 py-3 text-gray-500 font-medium">Guest</th>
-                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Events & Status</th>
-                    <th className="text-left px-4 py-3 text-gray-500 font-medium hidden md:table-cell">Travel</th>
-                    <th className="text-left px-4 py-3 text-gray-500 font-medium hidden md:table-cell">Party</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Event</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Status</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium hidden md:table-cell">Meal</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium hidden lg:table-cell">Song Request</th>
                     <th className="text-left px-4 py-3 text-gray-500 font-medium hidden lg:table-cell">Submitted</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {groupedRows.length === 0 ? (
+                <tbody className="divide-y divide-gray-50">
+                  {filteredResponses.length === 0 ? (
                     <tr><td colSpan={6} className="text-center py-10 text-gray-400">No responses yet</td></tr>
-                  ) : groupedRows.map(row => (
-                    <tr
-                      key={row.guestId}
-                      className={`hover:bg-gray-50 transition-colors ${selectedLogisticsGuests.includes(row.guestId) ? 'bg-blue-50' : ''}`}
-                    >
-                      {/* Logistics email checkbox */}
+                  ) : filteredResponses.map(r => (
+                    <tr key={r.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-900">{r.guest?.first_name} {r.guest?.last_name}</td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">{r.event?.title}</td>
                       <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          className="w-4 h-4 rounded"
-                          checked={selectedLogisticsGuests.includes(row.guestId)}
-                          onChange={() => toggleLogisticsGuest(row.guestId)}
-                          title="Select for logistics email"
-                        />
+                        <span className={`badge ${r.attending === 'yes' ? 'badge-green' : r.attending === 'no' ? 'badge-red' : 'badge-yellow'}`}>{r.attending}</span>
                       </td>
-
-                      {/* Guest name + email */}
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-gray-900">{row.guest?.first_name} {row.guest?.last_name}</p>
-                        {row.guest?.email && (
-                          <p className="text-xs text-gray-400 mt-0.5">{row.guest.email}</p>
-                        )}
-                      </td>
-
-                      {/* All events as colored pills in one cell */}
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1.5">
-                          {row.events.map((ev, i) => (
-                            <span
-                              key={i}
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${
-                                ev.attending === 'yes'
-                                  ? 'bg-green-50 border-green-200 text-green-700'
-                                  : ev.attending === 'no'
-                                  ? 'bg-red-50 border-red-200 text-red-600'
-                                  : 'bg-yellow-50 border-yellow-200 text-yellow-700'
-                              }`}
-                            >
-                              {ev.event?.title || 'Event'}
-                              <span className="opacity-50">·</span>
-                              {ev.attending}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-
-                      {/* Travel info */}
-                      <td className="px-4 py-3 text-gray-500 text-xs hidden md:table-cell">
-                        {row.guest?.travel_mode ? (
-                          <span>
-                            {row.guest.travel_mode}
-                            {row.guest.travel_details ? ` — ${row.guest.travel_details}` : ''}
-                          </span>
-                        ) : '—'}
-                        {row.guest?.arrival_datetime && (
-                          <p className="text-gray-400 mt-0.5">
-                            {format(new Date(row.guest.arrival_datetime), 'PP p')}
-                          </p>
-                        )}
-                      </td>
-
-                      {/* Party size */}
-                      <td className="px-4 py-3 text-gray-500 hidden md:table-cell">
-                        {row.guest?.party_size || 1}
-                      </td>
-
-                      {/* Latest submitted date */}
-                      <td className="px-4 py-3 text-gray-400 text-xs hidden lg:table-cell">
-                        {row.latestSubmitted ? format(new Date(row.latestSubmitted), 'PP') : '—'}
-                      </td>
+                      <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{r.meal_choice || '—'}</td>
+                      <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">{r.song_request || '—'}</td>
+                      <td className="px-4 py-3 text-gray-400 text-xs hidden lg:table-cell">{r.submitted_at ? format(new Date(r.submitted_at), 'PP') : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-
-            {/* Bottom action bar when guests selected */}
-            {selectedLogisticsGuests.length > 0 && (
-              <div className="p-3 bg-blue-50 border-t border-blue-100 flex items-center justify-between">
-                <p className="text-sm text-blue-700 font-medium">
-                  ✉️ {selectedLogisticsGuests.length} guest(s) selected — email will include their travel & arrival details
-                </p>
-                <button
-                  onClick={sendLogisticsEmails}
-                  disabled={sendingLogistics}
-                  className="btn-primary flex items-center gap-2 py-1.5 px-4 text-sm"
-                >
-                  {sendingLogistics ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                  Send Logistics Email
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -467,3 +316,4 @@ export default function RsvpPage() {
     </div>
   );
 }
+
